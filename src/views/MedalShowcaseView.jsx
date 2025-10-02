@@ -1,0 +1,157 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext.jsx';
+import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase/config.js';
+import { useNavigate, Link } from 'react-router-dom';
+import Card from '../components/Card.jsx';
+import ThemedLoader from '../components/ThemedLoader.jsx';
+import { Award, Check, Save, ArrowLeft, Lock } from 'lucide-react';
+
+export default function MedalShowcaseView() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    const [allMedals, setAllMedals] = useState([]); // <-- Almacenará todas las medallas (bloqueadas y desbloqueadas)
+    const [selectedMedals, setSelectedMedals] = useState(new Set());
+    const [loading, setLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        const fetchMedals = async () => {
+            if (user) {
+                try {
+                    // 1. Obtener las medallas ya seleccionadas por el usuario
+                    const userRef = doc(db, `users/${user.uid}`);
+                    const profileDoc = await getDoc(userRef);
+                    const currentShowcase = profileDoc.data()?.showcasedMedals || [];
+                    setSelectedMedals(new Set(currentShowcase));
+
+                    // 2. Obtener TODAS las definiciones de logros de la colección principal
+                    const achievementDefsSnap = await getDocs(collection(db, 'achievements'));
+                    const achievementDefs = achievementDefsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                    // 3. Obtener los logros que el usuario SÍ ha desbloqueado
+                    const userAchievementsSnap = await getDocs(collection(db, `users/${user.uid}/userAchievements`));
+                    const userAchievements = new Map(userAchievementsSnap.docs.map(d => [d.id, d.data()]));
+
+                    // 4. Fusionar los datos
+                    const medals = achievementDefs.map(achDef => {
+                        const userAch = userAchievements.get(achDef.id);
+                        
+                        if (userAch) {
+                            // Medalla DESBLOQUEADA
+                            const tierInfo = achDef.tiers.find(t => t.level === userAch.unlockedTier);
+                            return {
+                                id: achDef.id,
+                                name: tierInfo?.medalName || achDef.name,
+                                description: achDef.description,
+                                tier: userAch.unlockedTier,
+                                unlocked: true,
+                                progress: userAch.progress,
+                                nextThreshold: achDef.tiers.find(t => t.level === "Plata")?.threshold, // Ejemplo simple
+                            };
+                        } else {
+                            // Medalla BLOQUEADA
+                            const firstTier = achDef.tiers[0];
+                            return {
+                                id: achDef.id,
+                                name: firstTier?.medalName || achDef.name,
+                                description: achDef.description,
+                                tier: 'Bloqueada',
+                                unlocked: false,
+                                progress: 0,
+                                nextThreshold: firstTier?.threshold,
+                            };
+                        }
+                    });
+
+                    setAllMedals(medals);
+                } catch (error) {
+                    console.error("Error fetching medals:", error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+        fetchMedals();
+    }, [user]);
+
+    const handleSelect = (medalId, isUnlocked) => {
+        if (!isUnlocked) {
+            alert("No puedes destacar una medalla que aún no has desbloqueado.");
+            return;
+        }
+        
+        const newSelection = new Set(selectedMedals);
+        if (newSelection.has(medalId)) {
+            newSelection.delete(medalId);
+        } else {
+            if (newSelection.size < 3) {
+                newSelection.add(medalId);
+            } else {
+                alert("Solo puedes destacar un máximo de 3 medallas.");
+            }
+        }
+        setSelectedMedals(newSelection);
+    };
+
+    const handleSave = async () => {
+        // ... (Esta función no cambia)
+        setIsSaving(true);
+        try {
+            const userRef = doc(db, 'users', user.uid);
+            await updateDoc(userRef, {
+                showcasedMedals: Array.from(selectedMedals)
+            });
+            navigate('/perfil');
+        } catch (error) {
+            console.error("Error saving showcased medals:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    if (loading) return <ThemedLoader />;
+
+    return (
+        <Card>
+            <Link to="/perfil" className="flex items-center gap-2 text-sm text-blue-500 hover:underline mb-4">
+                <ArrowLeft size={16}/> Volver al Perfil
+            </Link>
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-3xl font-bold">Gestionar Medallas</h2>
+                <button onClick={handleSave} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold">
+                    <Save size={18} /> {isSaving ? 'Guardando...' : 'Guardar'}
+                </button>
+            </div>
+            <p className="text-gray-500 mb-6">Selecciona hasta 3 medallas desbloqueadas para mostrar en tu perfil.</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {allMedals.map(medal => {
+                    const isSelected = selectedMedals.has(medal.id);
+                    const tierColor = medal.tier === 'Oro' ? 'text-yellow-500' : medal.tier === 'Plata' ? 'text-gray-400' : medal.tier === 'Bronce' ? 'text-yellow-700' : 'text-gray-500';
+                    const canSelect = medal.unlocked;
+
+                    return (
+                        <div key={medal.id} onClick={() => handleSelect(medal.id, medal.unlocked)} className={`p-4 rounded-lg border-2 relative transition-all ${isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50' : 'border-gray-200 dark:border-gray-700'} ${canSelect ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}>
+                            {isSelected && <Check className="absolute top-2 right-2 text-white bg-blue-500 rounded-full p-1" />}
+                            {!medal.unlocked && <Lock className="absolute top-2 right-2 text-gray-400" />}
+                            
+                            <div className="flex items-center gap-4">
+                                <Award size={40} className={tierColor} />
+                                <div>
+                                    <h3 className="font-bold">{medal.name}</h3>
+                                    <p className="text-xs text-gray-500">{medal.description}</p>
+                                    {!medal.unlocked && (
+                                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2 dark:bg-gray-600">
+                                            <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${(medal.progress / medal.nextThreshold) * 100}%` }}></div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </Card>
+    );
+}
