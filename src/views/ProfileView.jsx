@@ -14,12 +14,15 @@ export default function ProfileView() {
     const [profile, setProfile] = useState(null);
     const [stats, setStats] = useState({ routines: 0, sessions: 0 });
     const [loading, setLoading] = useState(true);
+    
+    // Estado para guardar la información de las medallas a mostrar
     const [showcasedMedals, setShowcasedMedals] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
             if (user) {
                 try {
+                    // Carga de datos del perfil y estadísticas (sin cambios)
                     const profileData = await getProfile(user.uid);
                     setProfile(profileData);
 
@@ -27,17 +30,22 @@ export default function ProfileView() {
                     const sessionsSnap = await getDocs(collection(db, `users/${user.uid}/sessions`));
                     setStats({ routines: routinesSnap.size, sessions: sessionsSnap.size });
 
+                    // --- NUEVA LÓGICA PARA CARGAR MEDALLAS ---
+                    // 1. Verifica si el usuario ha seleccionado medallas para mostrar
                     if (profileData?.showcasedMedals && profileData.showcasedMedals.length > 0) {
+                        // 2. Carga todas las definiciones de logros de la colección principal
                         const achievementDefsSnap = await getDocs(collection(db, 'achievements'));
                         const achievementDefs = new Map(achievementDefsSnap.docs.map(doc => [doc.id, doc.data()]));
 
+                        // 3. Carga los logros que el usuario ha desbloqueado
                         const userAchievementsSnap = await getDocs(collection(db, `users/${user.uid}/userAchievements`));
                         const userAchievements = new Map(userAchievementsSnap.docs.map(doc => [doc.id, doc.data()]));
 
+                        // 4. Cruza los datos para obtener la información de las medallas a mostrar
                         const medals = profileData.showcasedMedals.map(id => {
                             const userAch = userAchievements.get(id);
                             const achDef = achievementDefs.get(id);
-                            if (!userAch || !achDef) return null;
+                            if (!userAch || !achDef) return null; // Si algo no se encuentra, lo ignora
                             
                             const tierInfo = achDef.tiers.find(t => t.level === userAch.unlockedTier);
                             
@@ -46,12 +54,12 @@ export default function ProfileView() {
                                 name: tierInfo?.medalName || achDef.name,
                                 tier: userAch.unlockedTier,
                             };
-                        }).filter(Boolean);
+                        }).filter(Boolean); // Filtra cualquier resultado nulo
 
                         setShowcasedMedals(medals);
                     }
                 } catch (error) {
-                    console.error("Error fetching profile data:", error);
+                    console.error("Error al cargar los datos del perfil:", error);
                 } finally {
                     setLoading(false);
                 }
@@ -82,6 +90,7 @@ export default function ProfileView() {
                 </button>
             </div>
 
+            {/* --- SECCIÓN DE MEDALLAS AÑADIDA --- */}
             <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
                 <div className="flex justify-center items-center mb-4">
                     <h3 className="text-xl font-semibold text-center">Medallas Destacadas</h3>
@@ -94,9 +103,9 @@ export default function ProfileView() {
                     </button>
                 </div>
                 {showcasedMedals.length > 0 ? (
-                    <div className="flex justify-center gap-4">
+                    <div className="flex justify-center gap-4 flex-wrap">
                         {showcasedMedals.map(medal => (
-                            <div key={medal.id} className="text-center">
+                            <div key={medal.id} className="flex flex-col items-center text-center w-24">
                                 <Award size={48} className={
                                     medal.tier === 'Oro' ? 'text-yellow-500' :
                                     medal.tier === 'Plata' ? 'text-gray-400' : 'text-yellow-700'
@@ -110,6 +119,7 @@ export default function ProfileView() {
                 )}
             </div>
 
+            {/* --- SECCIÓN DE ESTADÍSTICAS (SIN CAMBIOS) --- */}
             <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h3 className="text-lg font-semibold text-center mb-4">Estadísticas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
