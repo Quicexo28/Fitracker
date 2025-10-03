@@ -26,7 +26,7 @@ import MesocycleBuilderView from './views/MesocycleBuilderView.jsx';
 import AnalyticsView from './views/AnalyticsView.jsx';
 import ProfileView from './views/ProfileView.jsx';
 import FriendsView from './views/FriendsView.jsx';
-import MedalShowcaseView from './views/MedalShowcaseView.jsx'; // <-- IMPORTA LA NUEVA VISTA
+import MedalShowcaseView from './views/MedalShowcaseView.jsx';
 
 // Componentes
 import PrivateRoute from './components/PrivateRoute.jsx';
@@ -73,7 +73,7 @@ function AppContent() {
             <Route path="/perfil" element={<ProfileView user={user} />} />
             <Route path="/amigos" element={<FriendsView user={user} />} />
             
-            {/* --- AÑADE LA NUEVA RUTA AQUÍ --- */}
+            {/* --- RUTA AÑADIDA --- */}
             <Route path="/perfil/medallas" element={<MedalShowcaseView user={user} />} />
           </Route>
 

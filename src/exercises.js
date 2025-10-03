@@ -1,5 +1,6 @@
 // src/exercises.js (Versión Final y Completa con 4 niveles)
 
+import { sub } from "date-fns";
 import { is } from "date-fns/locale";
 
 const exerciseDatabaseRaw = [
@@ -46,15 +47,39 @@ const exerciseDatabaseRaw = [
                     {
                         id: 'fly-machine', name: 'en Máquina',
                         subVariations: [
-                            { id: 'fly-pec-deck', name: 'Pec Deck', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
-                            { id: 'fly-hmachine', name: 'Hammer', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'fly-pec-deck', name: 'Pec Deck',
+                                executionTypes: [
+                                    { id: 'fly-pec-deck-up', name: 'polea alta', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                    { id: 'fly-pec-deck-down', name: 'polea baja', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho'},
+                                    { id: 'fly-pec-deck-mid', name: 'polea media', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                ]
+                            },
+                            { id: 'fly-hmachine', name: 'Hammer',
+                                executionTypes: [
+                                    { id: 'fly-hmachine-up', name: 'polea alta', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                    { id: 'fly-hmachine-down', name: 'polea baja', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho'},
+                                    { id: 'fly-hmachine-mid', name: 'polea media', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                ]
+                             },
                         ]
                     },
                     {
                         id: 'fly-cable', name: 'en Polea',
                         subVariations: [
-                            { id: 'fly-cable-standing', name: 'De pie', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho', isUnilateral: true },
-                            { id: 'fly-cable-bench', name: 'En banco', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho', isUnilateral: true },
+                            { id: 'fly-cable-standing', name: 'De pie',
+                                executionTypes: [
+                                    { id: 'fly-cable-standing-up', name: 'polea alta', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                    { id: 'fly-cable-standing-down', name: 'polea baja', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho'},
+                                    { id: 'fly-cable-standing-mid', name: 'polea media', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                ]
+                            },
+                            { id: 'fly-cable-bench', name: 'En banco',
+                                executionTypes: [
+                                    { id: 'fly-cable-bench-up', name: 'polea alta', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                    { id: 'fly-cable-bench-down', name: 'polea baja', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho'},
+                                    { id: 'fly-cable-bench-mid', name: 'polea media', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                                ]
+                             },
                         ]
                     },
                     {
@@ -62,6 +87,51 @@ const exerciseDatabaseRaw = [
                         subVariations: [
                             { id: 'fly-dumbbell-flat', name: 'Plano', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
                             { id: 'fly-dumbbell-incline', name: 'Inclinado', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'fly-dumbbell-decline', name: 'Declinado', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                        ]
+                    },
+                ]
+            },
+            { id: 'cable-crossovers', name: 'cruces de polea',
+                executionTypes: [
+                    { id: 'cable-cross-up', name: 'polea alta',
+                        subVariations: [
+                            { id: 'cable-cross-up', name: 'Bilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'cable-cross-up-uni', name: 'Unilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho', isUnilateral: true},
+                        ]
+                    },
+                    { id: 'cable-cross-down', name: 'polea baja',
+                        subVariations: [
+                            { id: 'cable-cross-down', name: 'Bilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'cable-cross-down-uni', name: 'Unilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho', isUnilateral: true},
+                        ]
+                    },
+                    { id: 'cable-cross-mid', name: 'polea media',
+                        subVariations: [
+                            { id: 'cable-cross-mid', name: 'Bilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'cable-cross-mid-uni', name: 'Unilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho', isUnilateral: true},
+                        ]
+                    },
+                ]
+            },
+            { id: 'push-ups', name: 'Flexiones',
+                variations: [
+                    { id: 'pu-standard', name: 'Estándar', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                    { id: 'pu-elevated', name: 'Elevadas', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                    { id: 'pu-declined', name: 'Declinadas', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                    { id: 'pu-knee', name: 'de Rodillas', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                    { id: 'pu-advance', name: 'Avanzadas',
+                        executionTypes: [
+                            { id: 'pu-advance-handstand', name: 'Vertical', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-diamond', name: 'Diamante', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-archer', name: 'Arquero', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-clap', name: 'Palmadas', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-one-arm', name: 'Unilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho', isUnilateral: true },
+                            { id: 'pu-advance-close-grip', name: 'Agarre Cerrado', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-wide-grip', name: 'Agarre Ancho', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-pike', name: 'en pico', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-spiderman', name: 'Spiderman', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'pu-advance-full-planche', name: 'Planche Completo', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
                         ]
                     },
                 ]
@@ -78,22 +148,21 @@ const exerciseDatabaseRaw = [
                     {
                         id: 'bc-standard', name: 'Estándar',
                         subVariations: [
-                            { id: 'bc-barbell', name: 'con Barra (recta o ez)', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps'
-                            },
+                            { id: 'bc-barbell', name: 'con Barra (recta o ez)', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
                             { id: 'bc-dumbbell', name: 'con Mancuernas',
                                 executionTypes: [
                                     { id: 'bc-dumbbell-standed', name: 'De pie', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                                    { id: 'bc-dumbbell-standed-unilateral', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
+                                    { id: 'bc-dumbbell-standed-uni', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                                     { id: 'bc-dumbbell-seted', name: 'Sentado', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                                    { id: 'bc-dumbbell-seted-unilateral', name: 'Sentado Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
+                                    { id: 'bc-dumbbell-seted-uni', name: 'Sentado Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                                 ]
                             },
                             { id: 'bc-cable', name: 'en Polea',
                                 executionTypes: [
                                     { id: 'bc-cable-standed', name: 'De pie', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                                    { id: 'bc-cable-standed-unilateral', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },      
+                                    { id: 'bc-cable-standed-uni', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                                     { id: 'bc-cable-seted', name: 'Sentado', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                                    { id: 'bc-cable-seted-unilateral', name: 'Sentado Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
+                                    { id: 'bc-cable-seted-uni', name: 'Sentado Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                                 ]
                             },
                         ]
@@ -104,15 +173,15 @@ const exerciseDatabaseRaw = [
                             { id: 'bc-hammer-dumbbell', name: 'con Mancuernas',
                                 executionTypes: [
                                     { id: 'bc-hammer-dumbbell-standed', name: 'De pie', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                                    { id: 'bc-hammer-dumbbell-standed-unilateral', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
+                                    { id: 'bc-hammer-dumbbell-standed-uni', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                                     { id: 'bc-hammer-dumbbell-seted', name: 'Sentado', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                                    { id: 'bc-hammer-dumbbell-seted-unilateral', name: 'Sentado Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
+                                    { id: 'bc-hammer-dumbbell-seted-uni', name: 'Sentado Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                                 ]
                             },
                             { id: 'bc-hammer-cable', name: 'en Polea',
                                 executionTypes: [
                                     { id: 'bc-hammer-cable-standed', name: 'De pie', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                                    { id: 'bc-hammer-cable-standed-unilateral', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
+                                    { id: 'bc-hammer-cable-standed-uni', name: 'De pie Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                                 ]
                             },
                         ]
@@ -122,19 +191,18 @@ const exerciseDatabaseRaw = [
                         subVariations: [
                             { id: 'bc-preacher-barbell', name: 'con Barra', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
                             { id: 'bc-preacher-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
+                            { id: 'bc-preacher-dumbbell-uni', name: 'con Mancuernas Unilateral', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                             { id: 'bc-preacher-machine', name: 'en Máquina', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
                             { id: 'bc-preacher-hmachine', name: 'en Hammer', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
                             { id: 'bc-preacher-cable', name: 'en Polea', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
                         ]
                     },
-                        { id: 'bc-bayesian', name: 'Bayesian', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                        { id: 'bc-concentration', name: 'Concentración', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
+                        { id: 'bc-bayesian', name: 'Bayesian', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps', isUnilateral: true },
                     {
                         id: 'bc-spider', name: 'Spider',
                         subVariations: [
                             { id: 'bc-spider-barbell', name: 'con Barra', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
                             { id: 'bc-spider-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
-                            { id: 'bc-spider-cable', name: 'en Polea', imageUrl: 'https://placehold.co/100x100/10b981/ffffff?text=Bíceps' },
                         ]
                     },
                 ]
@@ -155,7 +223,12 @@ const exerciseDatabaseRaw = [
                             { id: 'sq-front', name: 'Frontal', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads' },
                         ]
                     },
-                    { id: 'sq-smith', name: 'en Máquina Smith', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads' },
+                    { id: 'sq-smith', name: 'en Máquina Smith',
+                        subVariations: [
+                            { id: 'sq-smith-back', name: 'Trasera', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads' },
+                            { id: 'sq-smith-front', name: 'Frontal', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads' },
+                        ]
+                    },
                     { id: 'sq-hack', name: 'en Máquina Hack', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads' },
                 ]
             },
@@ -182,6 +255,8 @@ const exerciseDatabaseRaw = [
                 variations: [
                     { id: 'le-bilateral', name: 'Bilateral', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads' },
                     { id: 'le-unilateral', name: 'Unilateral', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads', isUnilateral: true },
+                    { id: 'le-hmachine', name: 'en Hammer', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads' },
+                    { id: 'le-hmachine-uni', name: 'en Hammer Unilateral', imageUrl: 'https://placehold.co/100x100/9333ea/ffffff?text=Quads', isUnilateral: true },
                 ]
             },
         ]
@@ -239,19 +314,32 @@ const exerciseDatabaseRaw = [
                 variations: [
                     { id: 'ht-barbell', name: 'con Barra', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo' },
                     { id: 'ht-machine', name: 'en Máquina', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo' },
+                    { id: 'ht-hmachine', name: 'en Hammer',
+                        subVariations: [
+                            { id: 'ht-hmachine-arm', name: 'de brazo', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo' },
+                            { id: 'ht-hmachine-belt', name: 'de correa', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo' },
+                        ]
+                     },
+                    { id: 'ht-smith', name: 'en Smith', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo' },
                 ]
             },
             {
                 id: 'glute-bridge', name: 'Puente de Glúteos',
                 variations: [
                     { id: 'gb-barbell', name: 'con Barra', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo' },
-                    { id: 'gb-single-leg', name: 'a una Pierna', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo', isUnilateral: true },
+                    { id: 'gb-uni', name: 'a una Pierna', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo', isUnilateral: true },
                 ]
             },
             {
                 id: 'glute-kickback', name: 'Patada de Glúteo',
                 variations: [
-                    { id: 'gk-low-cable', name: 'en Polea Baja', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo', isUnilateral: true },
+                    { id: 'gk-cable', name: 'en Polea',
+                        subVariations: [
+                            { id: 'gk-cable-low', name: 'polea baja', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo', isUnilateral: true },
+                            { id: 'gk-cable-mid', name: 'polea media', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo', isUnilateral: true },
+                        ]
+                    },
+                    
                     { id: 'gk-machine', name: 'en Máquina', imageUrl: 'https://placehold.co/100x100/ec4899/ffffff?text=Glúteo', isUnilateral: true },
                 ]
             },
@@ -271,10 +359,22 @@ const exerciseDatabaseRaw = [
             {
                 id: 'lat-pulldown', name: 'Jalón al Pecho',
                 variations: [
-                    { id: 'lpd-wide', name: 'Agarre Ancho Prono', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
-                    { id: 'lpd-close', name: 'Agarre Cerrado Supino', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
-                    { id: 'lpd-neutral', name: 'Agarre Neutro', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
-                    { id: 'lpd-unilateral', name: 'Unilateral', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal', isUnilateral: true },
+                    { id: 'lpd-cable', name: 'en Polea',
+                        subVariations: [
+                            { id: 'lpd-cable-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
+                            { id: 'lpd-cable-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
+                            { id: 'lpd-cable-neutral', name: 'Agarre Neutro', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
+                            { id: 'lpd-cable-neutral-uni', name: 'Agarre Neutro unilateral', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal', isUnilateral: true },
+                        ]
+                     },
+                    { id: 'lpd-machine', name: 'en Máquina',
+                        subVariations: [
+                            { id: 'lpd-machine-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
+                            { id: 'lpd-machine-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
+                            { id: 'lpd-machine-neutral', name: 'Agarre Neutro', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal' },
+                            { id: 'lpd-machine-neutral-uni', name: 'Agarre Neutro unilateral', imageUrl: 'https://placehold.co/100x100/16a34a/ffffff?text=Dorsal', isUnilateral: true },
+                        ]
+                     },
                 ]
             },
             {
@@ -290,16 +390,80 @@ const exerciseDatabaseRaw = [
                     { id: 'tbar-unsupported', name: 'sin Apoyo', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
                 ]
             },
+            {
+                id: 'row', name: 'Remo',
+                variations: [
+                    { id: 'row-barbell', name: 'con Barra',
+                        subVariations: [
+                            { id: 'row-barbell-toChest', name: 'al Pecho',
+                                executionTypes: [
+                                    { id: 'row-barbell-toChest-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-barbell-toChest-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                ]
+                            },
+                            { id: 'row-barbell-toHip', name: 'a la cadera',
+                                executionTypes: [
+                                    { id: 'row-barbell-toHip-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-barbell-toHip-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                ]
+                            }
+                        ]
+                    },
+                    { id: 'row-dumbbell', name: 'con Mancuernas',
+                        subVariations: [
+                            { id: 'row-dumbbell-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                            { id: 'row-dumbbell-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                            { id: 'row-dumbbell-supinated-uni', name: 'Agarre Supino unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                            { id: 'row-dumbbell-neutral', name: 'Agarre Neutro', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                            { id: 'row-dumbbell-neutral-uni', name: 'Agarre Neutro unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                        ]
+                    },
+                    { id: 'row-cable', name: 'en Polea',
+                        subVariations: [
+                            { id: 'row-cable-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                            { id: 'row-cable-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                            { id: 'row-cable-supinated-uni', name: 'Agarre Supino unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                            { id: 'row-cable-neutral', name: 'Agarre Neutro', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                            { id: 'row-cable-neutral-uni', name: 'Agarre Neutro unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                        ]
+                    },
+                    { id: 'row-machine', name: 'en Máquina',
+                        subVariations: [
+                            { id: 'row-cable-machine', name: 'maquina de poleas',
+                                subVariations: [
+                                    { id: 'row-cable-machine-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-cable-machine-pronated-uni', name: 'Agarre Prono unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                                    { id: 'row-cable-machine-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-cable-machine-supinated-uni', name: 'Agarre Supino unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                                    { id: 'row-cable-machine-neutral', name: 'Agarre Neutro', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-cable-machine-neutral-uni', name: 'Agarre Neutro unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                                ]
+                            },
+                            { id: 'row-hmachine', name: 'Hammer',
+                                subVariations: [
+                                    { id: 'row-hmachine-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-hmachine-pronated-uni', name: 'Agarre Prono unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                                    { id: 'row-hmachine-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-hmachine-supinated-uni', name: 'Agarre Supino unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                                    { id: 'row-hmachine-neutral', name: 'Agarre Neutro', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
+                                    { id: 'row-hmachine-neutral-uni', name: 'Agarre Neutro unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
+                                ]
+                            },
+                        ]
+                    },
+                ]
+            },
         ]
     },
     {
         group: 'Hombros',
         items: [
             {
-                id: 'shoulder-press', name: 'Press de Hombros',
+                id: 'shoulder-press', name: 'Press de Hombros (press militar)',
                 variations: [
-                    { id: 'sp-barbell', name: 'con Barra (Militar)', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'sp-barbell', name: 'con Barra', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
                     { id: 'sp-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'sp-smith', name: 'en Smith', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
                     { id: 'sp-machine', name: 'en Máquina', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
                     { id: 'sp-hmachine', name: 'en Hammer', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
                 ]
@@ -307,16 +471,24 @@ const exerciseDatabaseRaw = [
             {
                 id: 'lateral-raises', name: 'Elevaciones Laterales',
                 variations: [
-                    { id: 'lr-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
+                    { id: 'lr-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'lr-dumbbell-uni', name: 'con Mancuernas unilaterales', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
                     { id: 'lr-cable', name: 'en Polea', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
+                    { id: 'lr-cable-bi', name: 'en Polea bilateral', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
                     { id: 'lr-machine', name: 'en Máquina', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'lr-machine-uni', name: 'en Máquina unilateral', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
+                    { id: 'lr-hmachine', name: 'en Hammer', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'lr-hmachine-uni', name: 'en Hammer unilateral', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
                 ]
             },
             {
                 id: 'front-raises', name: 'Elevaciones Frontales',
                 variations: [
-                    { id: 'fr-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
-                    { id: 'fr-cable', name: 'con Polea', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
+                    { id: 'fr-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'fr-dumbbell-uni', name: 'con Mancuernas unilaterales', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
+                    { id: 'fr-cable', name: 'con Polea', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'fr-cable-uni', name: 'con Polea unilateral', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
+                    
                 ]
             },
             {
@@ -325,6 +497,7 @@ const exerciseDatabaseRaw = [
                     { id: 'rdf-dumbbell', name: 'con Mancuernas', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
                     { id: 'rdf-machine', name: 'en Máquina (Pec Deck Inverso)', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
                     { id: 'rdf-cable', name: 'en Polea', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro' },
+                    { id: 'rdf-cable-uni', name: 'en Polea unilateral', imageUrl: 'https://placehold.co/100x100/db2777/ffffff?text=Hombro', isUnilateral: true },
                 ]
             },
         ]
@@ -333,9 +506,8 @@ const exerciseDatabaseRaw = [
         group: 'Triceps',
         items: [
             {
-                id: 'tricep-dips', name: 'Fondos de Tríceps',
+                id: 'tricep-dips', name: 'Fondos en Paralelas',
                 variations: [
-                    { id: 'td-wide-grip', name: 'agarre ancho', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
                     { id: 'td-close-grip', name: 'agarre cerrado', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
                 ]
             },

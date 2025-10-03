@@ -10,7 +10,7 @@ import { Award, Check, Save, ArrowLeft, Lock } from 'lucide-react';
 export default function MedalShowcaseView() {
     const { user } = useAuth();
     const navigate = useNavigate();
-    const [allMedals, setAllMedals] = useState([]); // <-- Almacenará todas las medallas (bloqueadas y desbloqueadas)
+    const [allMedals, setAllMedals] = useState([]);
     const [selectedMedals, setSelectedMedals] = useState(new Set());
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -19,21 +19,17 @@ export default function MedalShowcaseView() {
         const fetchMedals = async () => {
             if (user) {
                 try {
-                    // 1. Obtener las medallas ya seleccionadas por el usuario
                     const userRef = doc(db, `users/${user.uid}`);
                     const profileDoc = await getDoc(userRef);
                     const currentShowcase = profileDoc.data()?.showcasedMedals || [];
                     setSelectedMedals(new Set(currentShowcase));
 
-                    // 2. Obtener TODAS las definiciones de logros de la colección principal
                     const achievementDefsSnap = await getDocs(collection(db, 'achievements'));
                     const achievementDefs = achievementDefsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-                    // 3. Obtener los logros que el usuario SÍ ha desbloqueado
                     const userAchievementsSnap = await getDocs(collection(db, `users/${user.uid}/userAchievements`));
                     const userAchievements = new Map(userAchievementsSnap.docs.map(d => [d.id, d.data()]));
 
-                    // 4. Fusionar los datos
                     const medals = achievementDefs.map(achDef => {
                         const userAch = userAchievements.get(achDef.id);
                         
@@ -66,7 +62,7 @@ export default function MedalShowcaseView() {
 
                     setAllMedals(medals);
                 } catch (error) {
-                    console.error("Error fetching medals:", error);
+                    console.error("Error al cargar las medallas:", error);
                 } finally {
                     setLoading(false);
                 }
@@ -95,7 +91,6 @@ export default function MedalShowcaseView() {
     };
 
     const handleSave = async () => {
-        // ... (Esta función no cambia)
         setIsSaving(true);
         try {
             const userRef = doc(db, 'users', user.uid);
@@ -104,7 +99,8 @@ export default function MedalShowcaseView() {
             });
             navigate('/perfil');
         } catch (error) {
-            console.error("Error saving showcased medals:", error);
+            console.error("Error al guardar las medallas destacadas:", error);
+            alert("Hubo un error al guardar tu selección.");
         } finally {
             setIsSaving(false);
         }
@@ -126,7 +122,7 @@ export default function MedalShowcaseView() {
             <p className="text-gray-500 mb-6">Selecciona hasta 3 medallas desbloqueadas para mostrar en tu perfil.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {allMedals.map(medal => {
+                {allMedals.length > 0 ? allMedals.map(medal => {
                     const isSelected = selectedMedals.has(medal.id);
                     const tierColor = medal.tier === 'Oro' ? 'text-yellow-500' : medal.tier === 'Plata' ? 'text-gray-400' : medal.tier === 'Bronce' ? 'text-yellow-700' : 'text-gray-500';
                     const canSelect = medal.unlocked;
@@ -150,7 +146,7 @@ export default function MedalShowcaseView() {
                             </div>
                         </div>
                     );
-                })}
+                }) : <p className="text-center text-gray-500 col-span-full py-8">No hay logros definidos. Añádelos en la base de datos de Firebase.</p>}
             </div>
         </Card>
     );
