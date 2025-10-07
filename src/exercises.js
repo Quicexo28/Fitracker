@@ -47,20 +47,8 @@ const exerciseDatabaseRaw = [
                     {
                         id: 'fly-machine', name: 'en Máquina',
                         subVariations: [
-                            { id: 'fly-pec-deck', name: 'Pec Deck',
-                                executionTypes: [
-                                    { id: 'fly-pec-deck-up', name: 'polea alta', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
-                                    { id: 'fly-pec-deck-down', name: 'polea baja', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho'},
-                                    { id: 'fly-pec-deck-mid', name: 'polea media', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
-                                ]
-                            },
-                            { id: 'fly-hmachine', name: 'Hammer',
-                                executionTypes: [
-                                    { id: 'fly-hmachine-up', name: 'polea alta', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
-                                    { id: 'fly-hmachine-down', name: 'polea baja', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho'},
-                                    { id: 'fly-hmachine-mid', name: 'polea media', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
-                                ]
-                             },
+                            { id: 'fly-pec-deck', name: 'Pec Deck', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
+                            { id: 'fly-hmachine', name: 'Hammer', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
                         ]
                     },
                     {
@@ -429,8 +417,8 @@ const exerciseDatabaseRaw = [
                     },
                     { id: 'row-machine', name: 'en Máquina',
                         subVariations: [
-                            { id: 'row-cable-machine', name: 'maquina de poleas',
-                                subVariations: [
+                            { id: 'row-cable-machine', name: 'maquina',
+                                executionTypes: [
                                     { id: 'row-cable-machine-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
                                     { id: 'row-cable-machine-pronated-uni', name: 'Agarre Prono unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
                                     { id: 'row-cable-machine-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
@@ -440,7 +428,7 @@ const exerciseDatabaseRaw = [
                                 ]
                             },
                             { id: 'row-hmachine', name: 'Hammer',
-                                subVariations: [
+                                executionTypes: [
                                     { id: 'row-hmachine-pronated', name: 'Agarre Prono', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
                                     { id: 'row-hmachine-pronated-uni', name: 'Agarre Prono unilateral', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta', isUnilateral: true },
                                     { id: 'row-hmachine-supinated', name: 'Agarre Supino', imageUrl: 'https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta' },
