@@ -93,7 +93,7 @@ const exerciseDatabaseRaw = [
                 ]
             },
             { id: 'cable-crossovers', name: 'cruces de polea',
-                executionTypes: [
+                variations: [
                     { id: 'cable-cross-up', name: 'polea alta',
                         subVariations: [
                             { id: 'cable-cross-up', name: 'Bilateral', imageUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=Pecho' },
