@@ -7,7 +7,7 @@ import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
 import Card from '../components/Card.jsx';
 import AddExerciseModal from '../components/AddExerciseModal.jsx';
 import ThemedLoader from '../components/ThemedLoader.jsx';
-import { PlusCircle, Search, Trash2, BarChart2, ChevronDown } from 'lucide-react';
+import { PlusCircle, Search, Trash2, BarChart2, ChevronDown, SlidersHorizontal } from 'lucide-react';
 
 const normalizeText = (text = '') => 
     text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -22,63 +22,126 @@ export default function ExerciseManagementView({ user }) {
     const exercisesPath = useMemo(() => user ? `users/${user.uid}/exercises` : null, [user]);
     const { data: customExercises, loading } = useFirestoreCollection(exercisesPath, { orderBy: 'name', direction: 'asc' });
     
-    // ... (resto de funciones sin cambios)
+    const muscleGroups = useMemo(() => [...new Set(exerciseDatabase.map(group => group.group))].sort(), []);
 
     const filteredExercises = useMemo(() => {
         const flatDefaultExercises = exerciseDatabase.flatMap(group =>
-            group.items.map(item => ({ ...item, group: group.group, isCustom: false }))
+            group.items.flatMap(item => {
+                if (!item.variations || item.variations.length === 0) {
+                    return [{ ...item, group: group.group, isCustom: false, variationName: '' }];
+                }
+                return item.variations.map(variation => ({
+                    ...variation,
+                    name: `${item.name}: ${variation.name}`,
+                    group: group.group,
+                    isCustom: false,
+                }));
+            })
         );
-        const formattedCustomExercises = customExercises.map(ex => ({ ...ex, isCustom: true, variations: [] }));
+        const formattedCustomExercises = customExercises.map(ex => ({ ...ex, isCustom: true, variationName: '(Personalizado)' }));
         
-        let all = [...flatDefaultExercises, ...formattedCustomExercises].sort((a, b) => a.name.localeCompare(b.name));
+        let all = [...flatDefaultExercises, ...formattedCustomExercises].sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name)));
         
-        // ... (resto de la lógica de filtrado sin cambios)
+        if (sourceFilter !== 'all') {
+            all = all.filter(ex => sourceFilter === 'custom' ? ex.isCustom : !ex.isCustom);
+        }
+        if (muscleGroupFilter !== 'all') {
+            all = all.filter(ex => ex.group === muscleGroupFilter);
+        }
+        if (searchTerm) {
+            const normalizedSearchTerm = normalizeText(searchTerm);
+            all = all.filter(ex => normalizeText(ex.name).includes(normalizedSearchTerm));
+        }
 
         return all;
     }, [searchTerm, muscleGroupFilter, sourceFilter, customExercises]);
+
+    const deleteCustomExercise = async (exerciseId) => {
+        if (window.confirm("¿Seguro que quieres eliminar este ejercicio personalizado? Esta acción es permanente.")) {
+            try {
+                await deleteDoc(doc(db, exercisesPath, exerciseId));
+            } catch (error) {
+                console.error("Error al eliminar ejercicio:", error);
+                alert("No se pudo eliminar el ejercicio.");
+            }
+        }
+    };
 
     return (
         <>
             <AddExerciseModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} user={user} />
             <Card>
-                {/* ... (código del encabezado y filtros sin cambios) */}
+                {/* --- SECCIÓN DE ENCABEZADO Y FILTROS --- */}
+                <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+                    <h2 className="text-3xl font-bold">Biblioteca de Ejercicios</h2>
+                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg">
+                        <PlusCircle size={20} /> Crear Ejercicio
+                    </button>
+                </div>
 
-                {loading && (sourceFilter === 'custom' || sourceFilter === 'all') ? <ThemedLoader /> : (
-                    <ul className="space-y-2 h-[55vh] overflow-y-auto pr-2">
-                        {filteredExercises.map((exercise) => {
-                            const hasVariations = exercise.variations && exercise.variations.length > 0;
-                            const isExpanded = expandedId === exercise.id;
-
-                            return (
-                                <li key={exercise.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
-                                    <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => hasVariations && setExpandedId(isExpanded ? null : exercise.id)}>
-                                        <div className="flex items-center gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div className="relative md:col-span-3">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                            type="text"
+                            placeholder="Buscar ejercicio por nombre..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full p-3 pl-10 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Grupo Muscular</label>
+                        <select
+                            value={muscleGroupFilter}
+                            onChange={e => setMuscleGroupFilter(e.target.value)}
+                            className="w-full p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600"
+                        >
+                            <option value="all">Todos</option>
+                            {muscleGroups.map(group => <option key={group} value={group}>{group}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Origen</label>
+                        <select
+                            value={sourceFilter}
+                            onChange={e => setSourceFilter(e.target.value)}
+                            className="w-full p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-300 dark:border-gray-600"
+                        >
+                            <option value="all">Todos</option>
+                            <option value="default">Por Defecto</option>
+                            <option value="custom">Personalizados</option>
+                        </select>
+                    </div>
+                </div>
+                
+                {/* --- LISTA DE EJERCICIOS --- */}
+                <div className="h-[55vh] overflow-y-auto pr-2">
+                    {loading && (sourceFilter === 'custom' || sourceFilter === 'all') ? <ThemedLoader /> : (
+                        <ul className="space-y-2">
+                            {filteredExercises.map((exercise) => (
+                                <li key={exercise.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg">
+                                    <div className="flex items-center justify-between p-3">
+                                        <div>
                                             <span className="font-medium">{exercise.name}</span>
-                                            {exercise.isCustom && <span className="text-xs text-blue-500">(Custom)</span>}
-                                            {exercise.isUnilateral && !hasVariations && <span className="text-xs font-semibold bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">Unilateral</span>}
+                                            {exercise.isCustom && <span className="ml-2 text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Personalizado</span>}
                                         </div>
-                                        {/* ... */}
+                                        <div className="flex items-center gap-2">
+                                            <Link to={`/ejercicios/${exercise.id}`} className="p-2 text-gray-500 hover:text-blue-500">
+                                                <BarChart2 size={18} />
+                                            </Link>
+                                            {exercise.isCustom && (
+                                                <button onClick={() => deleteCustomExercise(exercise.id)} className="p-2 text-gray-500 hover:text-red-500">
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    {isExpanded && hasVariations && (
-                                        <ul className="pl-8 pr-4 pb-3 border-t">
-                                            {exercise.variations.map(variation => (
-                                                <li key={variation.id} className="mt-2">
-                                                    <Link to={`/ejercicios/${variation.id}`} className="flex items-center justify-between text-sm p-2 rounded-md hover:bg-blue-100">
-                                                        <div className="flex items-center gap-2">
-                                                            <span>{variation.name}</span>
-                                                            {variation.isUnilateral && <span className="text-xs font-semibold bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full">Unilateral</span>}
-                                                        </div>
-                                                        <BarChart2 size={16} className="text-blue-500" />
-                                                    </Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
                                 </li>
-                            );
-                        })}
-                    </ul>
-                )}
+                            ))}
+                        </ul>
+                    )}
+                </div>
             </Card>
         </>
     );

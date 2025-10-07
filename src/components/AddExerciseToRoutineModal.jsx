@@ -1,5 +1,3 @@
-// src/components/AddExerciseToRoutineModal.jsx (Versión Final Consolidada)
-
 import React, { useState, useMemo } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
@@ -7,19 +5,17 @@ import { exerciseDatabase } from '../exercises.js';
 import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
 import Card from './Card.jsx';
 import ExerciseDetailForm from './ExerciseDetailForm.jsx';
+import AddExerciseModal from './AddExerciseModal.jsx';
 import { X, Search, ChevronRight, ArrowLeft, PlusCircle } from 'lucide-react';
 
-// Función auxiliar para normalizar texto (ignorar tildes y mayúsculas)
-const normalizeText = (text = '') => 
-    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const normalizeText = (text = '') => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routineId, onExerciseAdded, onShowCreateNew }) {
+export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routineId, onExerciseAdded }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedExercise, setSelectedExercise] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    // Estados para manejar los 3 niveles de menús desplegables
+    const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [expandedExerciseId, setExpandedExerciseId] = useState(null);
     const [expandedVariationId, setExpandedVariationId] = useState(null);
     const [expandedSubVariationId, setExpandedSubVariationId] = useState(null);
@@ -66,7 +62,7 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
         });
     };
     
-    const handleAddExerciseToRoutine = async (fullExerciseData) => {
+    const handleAddExercise = async (fullExerciseData) => {
         if (!routineExercisesPath) return;
         setIsSubmitting(true);
         try {
@@ -81,39 +77,29 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
             setIsSubmitting(false);
         }
     };
-
-    const handleExecutionTypeClick = (base, variation, subVar, execType) => {
-        selectExercise({
-            ...execType,
-            name: `${base.name}: ${subVar.name} (${execType.name})`,
-            group: base.group
-        });
+    
+    const handleExerciseCreated = (newExercise) => {
+        setIsCreatingNew(false);
+        setSelectedExercise(newExercise);
     };
 
+    const handleExecutionTypeClick = (base, variation, subVar, execType) => {
+        selectExercise({ ...execType, name: `${base.name}: ${subVar.name} (${execType.name})`, group: base.group });
+    };
     const handleSubVariationClick = (base, variation, subVar) => {
         if (!subVar.executionTypes || subVar.executionTypes.length === 0) {
-            selectExercise({
-                ...subVar,
-                name: `${base.name}: ${variation.name} (${subVar.name})`,
-                group: base.group
-            });
+            selectExercise({ ...subVar, name: `${base.name}: ${variation.name} (${subVar.name})`, group: base.group });
         } else {
             setExpandedSubVariationId(subVar.id === expandedSubVariationId ? null : subVar.id);
         }
     };
-
     const handleVariationClick = (base, variation) => {
         if (!variation.subVariations || variation.subVariations.length === 0) {
-            selectExercise({
-                ...variation,
-                name: `${base.name}: ${variation.name}`,
-                group: base.group
-            });
+            selectExercise({ ...variation, name: `${base.name}: ${variation.name}`, group: base.group });
         } else {
             setExpandedVariationId(variation.id === expandedVariationId ? null : variation.id);
         }
     };
-
     const handleExerciseClick = (exercise) => {
         if (!exercise.variations || exercise.variations.length === 0) {
             selectExercise(exercise);
@@ -126,6 +112,7 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
         setSearchTerm('');
         setSelectedCategory(null);
         setSelectedExercise(null);
+        setIsCreatingNew(false);
         setExpandedExerciseId(null);
         setExpandedVariationId(null);
         setExpandedSubVariationId(null);
@@ -135,6 +122,10 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
     const muscleGroups = useMemo(() => [...new Set(exerciseDatabase.map(group => group.group))], []);
 
     if (!isOpen) return null;
+
+    if (isCreatingNew) {
+        return <AddExerciseModal isOpen={true} onClose={() => setIsCreatingNew(false)} user={user} onExerciseCreated={handleExerciseCreated} />;
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
@@ -148,7 +139,7 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
                 
                 {!selectedCategory && !selectedExercise && (
                     <>
-                        <button onClick={onShowCreateNew} className="w-full flex items-center justify-center gap-2 p-3 mb-4 text-sm font-semibold text-blue-600 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900">
+                        <button onClick={() => setIsCreatingNew(true)} className="w-full flex items-center justify-center gap-2 p-3 mb-4 text-sm font-semibold text-blue-600 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900">
                             <PlusCircle size={18}/>Crear Ejercicio Personalizado
                         </button>
                         <ul className="space-y-2 h-[50vh] overflow-y-auto border-t border-gray-200 dark:border-gray-700 pt-4">
@@ -170,13 +161,11 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
                         <ul className="space-y-1 h-[50vh] overflow-y-auto pr-2">
                             {loading ? <p>Cargando...</p> : filteredExercises.map(exercise => (
                                 <li key={exercise.id}>
-                                    {/* --- NIVEL 1: Ejercicio Base --- */}
                                     <div onClick={() => handleExerciseClick(exercise)} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                                         <span>{exercise.name} {exercise.isCustom && '(Custom)'}</span>
                                         {exercise.variations && exercise.variations.length > 0 && <ChevronRight size={20} className={`transition-transform ${expandedExerciseId === exercise.id ? 'rotate-90' : ''}`} />}
                                     </div>
                                     
-                                    {/* --- NIVEL 2: Variaciones --- */}
                                     {exercise.variations && expandedExerciseId === exercise.id && (
                                         <ul className="pl-4 py-1 space-y-1">
                                             {exercise.variations.map(variation => (
@@ -186,7 +175,6 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
                                                         {variation.subVariations && variation.subVariations.length > 0 && <ChevronRight size={18} className={`transition-transform ${expandedVariationId === variation.id ? 'rotate-90' : ''}`} />}
                                                     </div>
                                                     
-                                                    {/* --- NIVEL 3: Sub-Variaciones --- */}
                                                     {variation.subVariations && expandedVariationId === variation.id && (
                                                         <ul className="pl-4 py-1 space-y-1">
                                                             {variation.subVariations.map(subVar => (
@@ -195,8 +183,6 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
                                                                         <span>{subVar.name}</span>
                                                                         {subVar.executionTypes && subVar.executionTypes.length > 0 && <ChevronRight size={16} className={`transition-transform ${expandedSubVariationId === subVar.id ? 'rotate-90' : ''}`} />}
                                                                     </div>
-
-                                                                    {/* --- NIVEL 4: Tipos de Ejecución --- */}
                                                                     {subVar.executionTypes && expandedSubVariationId === subVar.id && (
                                                                         <ul className="pl-4 py-1 space-y-1">
                                                                             {subVar.executionTypes.map(execType => (
@@ -221,7 +207,7 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
                 )}
 
                 {selectedExercise && (
-                    <ExerciseDetailForm exercise={selectedExercise} onSave={handleAddExerciseToRoutine} onCancel={() => setSelectedExercise(null)} isSubmitting={isSubmitting} mode="add" />
+                    <ExerciseDetailForm exercise={selectedExercise} onSave={handleAddExercise} onCancel={() => setSelectedExercise(null)} isSubmitting={isSubmitting} mode="add" />
                 )}
             </Card>
         </div>

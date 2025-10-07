@@ -8,7 +8,6 @@ import Card from '../components/Card.jsx';
 import ThemedLoader from '../components/ThemedLoader.jsx';
 import AddExerciseToRoutineModal from '../components/AddExerciseToRoutineModal.jsx';
 import EditExerciseInRoutineModal from '../components/EditExerciseInRoutineModal.jsx';
-import AddExerciseModal from '../components/AddExerciseModal.jsx';
 import { PlusCircle, Trash2, ArrowLeft, PlayCircle, Edit, Link, Link2Off, GripVertical, Share2, EyeOff, Loader } from 'lucide-react';
 import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -45,7 +44,6 @@ export default function RoutineBuilderView({ user }) {
     const { routineId } = useParams();
     const navigate = useNavigate();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedExercise, setSelectedExercise] = useState(null);
     const [selectionMode, setSelectionMode] = useState(false);
@@ -56,7 +54,7 @@ export default function RoutineBuilderView({ user }) {
     const { document: routineDoc, loading: routineLoading, refetch: refetchRoutine } = useFirestoreDocument(routinePath);
 
     const routineExercisesPath = useMemo(() => user && routineId ? `users/${user.uid}/routines/${routineId}/exercises` : null, [user, routineId]);
-    const { data: exercises, loading: exercisesLoading, refetch: refetchExercises } = useFirestoreCollection(routineExercisesPath, { orderBy: 'addedAt', direction: 'asc' });
+    const { data: exercises, loading: exercisesLoading } = useFirestoreCollection(routineExercisesPath, { orderBy: 'addedAt', direction: 'asc' });
     
     const groupedExercises = useMemo(() => {
         if (!exercises) return [];
@@ -120,10 +118,8 @@ export default function RoutineBuilderView({ user }) {
         if (active && over && active.id !== over.id) {
             const oldIndex = groupedExercises.findIndex(g => (g[0].supersetId || g[0].id) === active.id);
             const newIndex = groupedExercises.findIndex(g => (g[0].supersetId || g[0].id) === over.id);
-            const newOrder = arrayMove(groupedExercises, oldIndex, newIndex);
-
             const batch = writeBatch(db);
-            newOrder.flat().forEach((ex, index) => {
+            arrayMove(groupedExercises, oldIndex, newIndex).flat().forEach((ex, index) => {
                 const docRef = doc(db, routineExercisesPath, ex.id);
                 batch.update(docRef, { addedAt: index });
             });
@@ -139,26 +135,14 @@ export default function RoutineBuilderView({ user }) {
         if (confirmation) {
             setIsSharing(true);
             try {
-                const routineRef = doc(db, routinePath);
-                await updateDoc(routineRef, { isShared: !currentlyShared });
+                await updateDoc(doc(db, routinePath), { isShared: !currentlyShared });
                 refetchRoutine();
             } catch (error) {
                 console.error("Error al cambiar el estado de compartición:", error);
-                alert("Hubo un error.");
             } finally {
                 setIsSharing(false);
             }
         }
-    };
-
-    const handleShowCreateNew = () => {
-        setIsAddModalOpen(false);
-        setIsCreateModalOpen(true);
-    };
-
-    const handleExerciseCreated = () => {
-        setIsCreateModalOpen(false);
-        refetchExercises();
     };
 
     const loading = routineLoading || exercisesLoading;
@@ -166,8 +150,7 @@ export default function RoutineBuilderView({ user }) {
 
     return (
         <>
-            <AddExerciseToRoutineModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} user={user} routineId={routineId} onShowCreateNew={handleShowCreateNew} />
-            <AddExerciseModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} user={user} onExerciseCreated={handleExerciseCreated} />
+            <AddExerciseToRoutineModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} user={user} routineId={routineId} />
             <EditExerciseInRoutineModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} exercise={selectedExercise} user={user} routineId={routineId} routineExercisesPath={routineExercisesPath} />
             
             <Card>

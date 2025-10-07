@@ -596,6 +596,28 @@ const exerciseDatabaseRaw = [
             },
         ]
     },
+    {
+        group: 'Abductores',
+        items: [
+            { id: 'hip-abduction', name: 'Abducción de Cadera',
+                variations: [
+                    { id: 'ha-machine', name: 'en Máquina', imageUrl: 'https://placehold.co/100x100/f43f5e/ffffff?text=Abductor' },
+                    { id: 'ha-cable', name: 'en Polea', imageUrl: 'https://placehold.co/100x100/f43f5e/ffffff?text=Abductor', isUnilateral: true },
+                ]
+            }
+        ]
+    },
+    {
+        group: 'Aductores',
+        items: [
+            { id: 'hip-adduction', name: 'Aducción de Cadera',
+                variations: [
+                    { id: 'had-machine', name: 'en Máquina', imageUrl: 'https://placehold.co/100x100/f43f5e/ffffff?text=Aductor' },
+                    { id: 'had-cable', name: 'en Polea', imageUrl: 'https://placehold.co/100x100/f43f5e/ffffff?text=Aductor', isUnilateral: true },
+                ]
+            }
+        ]
+    },
 ];
 
 
