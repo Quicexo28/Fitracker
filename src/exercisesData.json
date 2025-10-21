@@ -1449,6 +1449,16 @@
     ]
   },
   {
+    "group": "prueba",
+    "items": [
+      {
+        "id": "p",
+        "name": "p",
+        "variations": []
+      }
+    ]
+  },
+  {
     "group": "test",
     "items": [
       {
