@@ -32,7 +32,6 @@ export default function MedalShowcaseView() {
 
                     const medals = achievementDefs.map(achDef => {
                         const userAch = userAchievements.get(achDef.id);
-                        const tierLevels = { "Bronce": 1, "Plata": 2, "Oro": 3 };
                         
                         // Ordena los tiers por threshold ascendente para facilitar encontrar el actual y el siguiente
                         const sortedTiers = [...achDef.tiers].sort((a, b) => a.threshold - b.threshold);
@@ -60,7 +59,7 @@ export default function MedalShowcaseView() {
                                 description: achDef.description,
                                 tier: 'Bloqueada',
                                 unlocked: false,
-                                progress: userAchievements.get(achDef.id)?.progress || 0,
+                                progress: userAchievements.get(achDef.id)?.progress || 0, // Muestra progreso aunque esté bloqueado
                                 currentThreshold: 0,
                                 nextThreshold: firstTier?.threshold,
                             };

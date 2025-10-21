@@ -1,7 +1,7 @@
 import { collection, doc, getDocs, getDoc, setDoc, writeBatch } from 'firebase/firestore';
 import { db } from './config.js';
 
-// --- NUEVO: Función para contar PRs en las sesiones ---
+// --- Función para contar PRs en las sesiones ---
 const countPersonalRecords = (sessions) => {
     let prCount = 0;
     sessions.forEach(session => {
@@ -25,6 +25,7 @@ const achievementRegistry = {
 
 // Obtiene estadísticas clave del usuario
 const getUserStats = async (userId) => {
+    // Aseguramos que la colección sea 'sessions' consistentemente
     const sessionsRef = collection(db, `users/${userId}/sessions`);
     // const routinesRef = collection(db, `users/${userId}/routines`); // Para futuro logro
 
