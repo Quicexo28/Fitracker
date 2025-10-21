@@ -1449,36 +1449,6 @@
     ]
   },
   {
-    "group": "test",
-    "items": [
-      {
-        "id": "test",
-        "name": "test",
-        "variations": [
-          {
-            "id": "1",
-            "name": "1",
-            "isUnilateral": false,
-            "subVariations": [
-              {
-                "id": "2",
-                "name": "2",
-                "isUnilateral": false,
-                "executionTypes": [
-                  {
-                    "id": "3",
-                    "name": "3",
-                    "isUnilateral": false
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  },
-  {
     "group": "Triceps",
     "items": [
       {
