@@ -9,7 +9,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "deploy:web": "npm run build && firebase deploy --only hosting",
-    "preview:local": "npm run build && vite preview",
+    "preview:local": "npm run build && vite preview", 
     "sync:android": "npm run build && npx cap sync android"
   },
   "dependencies": {
@@ -21,12 +21,10 @@
     "chart.js": "^4.5.0",
     "date-fns": "^4.1.0",
     "firebase": "^11.10.0",
-    "firebase-admin": "^13.5.0",
     "lucide-react": "^0.525.0",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.1.0",
-    "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.6.3",
     "uuid": "^11.1.0"
   },

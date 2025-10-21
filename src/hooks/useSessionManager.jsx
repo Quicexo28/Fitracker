@@ -1,23 +1,39 @@
-import { useState, useEffect } from 'react';
-import useUndo from './useUndo.jsx'; // Ruta correcta
+import { useState } from 'react';
+import useUndo from './useUndo.jsx';
 
 export default function useSessionManager(sessionExercises, setSessionExercises) {
     const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
     const [isReplacementModalOpen, setIsReplacementModalOpen] = useState(false);
-    const [replacementTarget, setReplacementTarget] = useState(null);
+    const [replacementTarget, setReplacementTarget] = useState(null); // Guarda el ID del ejercicio a reemplazar
     
     const { startUndo, onUndo, undoState } = useUndo(5000);
     
-    const handleAddOrReplaceExercise = (exercise) => {
-        const newExercise = {
+    const handleAddOrReplaceExercise = (exercise) => { // 'exercise' es el NUEVO ejercicio seleccionado
+        const newExerciseData = {
             ...exercise,
-            sets: Array.from({ length: exercise.sets || 1 }, (_, i) => ({ id: `${exercise.id}-${i + 1}`, setNumber: i + 1 }))
+            sets: Array.from({ length: exercise.sets || 3 }, (_, i) => ({ id: `${exercise.id}-${i + 1}`, setNumber: i + 1 }))
         };
+
         if (replacementTarget) {
-            setSessionExercises(prev => prev.map(ex => ex.id === replacementTarget ? { ...newExercise, id: replacementTarget, sets: ex.sets } : ex));
+            setSessionExercises(prev => prev.map(ex => {
+                if (ex.id === replacementTarget) {
+                    // Mantenemos el ID original (replacementTarget) y las propiedades de orden
+                    // pero actualizamos el resto de los datos con los del nuevo ejercicio
+                    return { 
+                        ...newExerciseData, // Nuevos datos (nombre, grupo, isUnilateral, etc.)
+                        id: replacementTarget, // Mantenemos el ID original para DND y referencias
+                        exerciseId: exercise.id, // Guardamos el ID real del ejercicio base por si acaso
+                        addedAt: ex.addedAt, // Mantenemos posición
+                        supersetId: ex.supersetId, // Mantenemos superset
+                        supersetOrder: ex.supersetOrder // Mantenemos orden en superset
+                    };
+                }
+                return ex;
+            }));
             setReplacementTarget(null);
         } else {
-            setSessionExercises(prev => [...prev, newExercise]);
+            // Añadir nuevo
+            setSessionExercises(prev => [...prev, { ...newExerciseData, addedAt: { seconds: Date.now() / 1000 } }]);
         }
     };
 

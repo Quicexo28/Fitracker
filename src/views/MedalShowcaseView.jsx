@@ -32,29 +32,36 @@ export default function MedalShowcaseView() {
 
                     const medals = achievementDefs.map(achDef => {
                         const userAch = userAchievements.get(achDef.id);
+                        const tierLevels = { "Bronce": 1, "Plata": 2, "Oro": 3 };
                         
+                        // Ordena los tiers por threshold ascendente para facilitar encontrar el actual y el siguiente
+                        const sortedTiers = [...achDef.tiers].sort((a, b) => a.threshold - b.threshold);
+
                         if (userAch) {
-                            // Medalla DESBLOQUEADA
-                            const tierInfo = achDef.tiers.find(t => t.level === userAch.unlockedTier);
+                            const tierInfo = sortedTiers.find(t => t.level === userAch.unlockedTier);
+                            const currentLevelIndex = sortedTiers.findIndex(t => t.level === userAch.unlockedTier);
+                            const nextTier = sortedTiers[currentLevelIndex + 1]; // Puede ser undefined si es Oro
+
                             return {
                                 id: achDef.id,
                                 name: tierInfo?.medalName || achDef.name,
                                 description: achDef.description,
                                 tier: userAch.unlockedTier,
                                 unlocked: true,
-                                progress: userAch.progress,
-                                nextThreshold: achDef.tiers.find(t => t.level === "Plata")?.threshold, // Ejemplo simple
+                                progress: userAch.progress || 0,
+                                currentThreshold: tierInfo?.threshold || 0,
+                                nextThreshold: nextTier?.threshold,
                             };
                         } else {
-                            // Medalla BLOQUEADA
-                            const firstTier = achDef.tiers[0];
+                            const firstTier = sortedTiers[0];
                             return {
                                 id: achDef.id,
                                 name: firstTier?.medalName || achDef.name,
                                 description: achDef.description,
                                 tier: 'Bloqueada',
                                 unlocked: false,
-                                progress: 0,
+                                progress: userAchievements.get(achDef.id)?.progress || 0,
+                                currentThreshold: 0,
                                 nextThreshold: firstTier?.threshold,
                             };
                         }
@@ -62,7 +69,7 @@ export default function MedalShowcaseView() {
 
                     setAllMedals(medals);
                 } catch (error) {
-                    console.error("Error al cargar las medallas:", error);
+                    console.error("Error fetching medals:", error);
                 } finally {
                     setLoading(false);
                 }
@@ -71,12 +78,24 @@ export default function MedalShowcaseView() {
         fetchMedals();
     }, [user]);
 
+    const calculateProgressPercent = (medal) => {
+        if (!medal.nextThreshold) return medal.unlocked ? 100 : 0; // Si no hay siguiente nivel, 100% si está desbloqueado, 0% si no
+        if (medal.nextThreshold === 0) return 100; // Evitar división por cero
+
+        // Progreso relativo al rango entre el umbral actual y el siguiente
+        const progressSinceLastTier = Math.max(0, medal.progress - medal.currentThreshold);
+        const totalNeededForNextTier = medal.nextThreshold - medal.currentThreshold;
+        
+        if (totalNeededForNextTier <= 0) return 100; // Si el rango es 0 o negativo, ya se superó
+
+        return Math.min(100, (progressSinceLastTier / totalNeededForNextTier) * 100);
+    };
+
     const handleSelect = (medalId, isUnlocked) => {
         if (!isUnlocked) {
             alert("No puedes destacar una medalla que aún no has desbloqueado.");
             return;
         }
-        
         const newSelection = new Set(selectedMedals);
         if (newSelection.has(medalId)) {
             newSelection.delete(medalId);
@@ -99,7 +118,7 @@ export default function MedalShowcaseView() {
             });
             navigate('/perfil');
         } catch (error) {
-            console.error("Error al guardar las medallas destacadas:", error);
+            console.error("Error saving showcased medals:", error);
             alert("Hubo un error al guardar tu selección.");
         } finally {
             setIsSaving(false);
@@ -126,6 +145,7 @@ export default function MedalShowcaseView() {
                     const isSelected = selectedMedals.has(medal.id);
                     const tierColor = medal.tier === 'Oro' ? 'text-yellow-500' : medal.tier === 'Plata' ? 'text-gray-400' : medal.tier === 'Bronce' ? 'text-yellow-700' : 'text-gray-500';
                     const canSelect = medal.unlocked;
+                    const progressPercent = calculateProgressPercent(medal);
 
                     return (
                         <div key={medal.id} onClick={() => handleSelect(medal.id, medal.unlocked)} className={`p-4 rounded-lg border-2 relative transition-all ${isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50' : 'border-gray-200 dark:border-gray-700'} ${canSelect ? 'cursor-pointer' : 'opacity-60 cursor-not-allowed'}`}>
@@ -137,9 +157,11 @@ export default function MedalShowcaseView() {
                                 <div>
                                     <h3 className="font-bold">{medal.name}</h3>
                                     <p className="text-xs text-gray-500">{medal.description}</p>
-                                    {!medal.unlocked && (
-                                        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-2 dark:bg-gray-600">
-                                            <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${(medal.progress / medal.nextThreshold) * 100}%` }}></div>
+                                    {(medal.nextThreshold !== undefined) && ( // Muestra barra si hay un siguiente nivel definido
+                                        <div className="mt-2" title={`Progreso: ${medal.progress} / ${medal.nextThreshold || 'MAX'}`}>
+                                            <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-600">
+                                                <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${progressPercent}%` }}></div>
+                                            </div>
                                         </div>
                                     )}
                                 </div>

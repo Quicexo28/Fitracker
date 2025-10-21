@@ -1,5 +1,3 @@
-// src/views/CreateSessionView.jsx (Versión Final Consolidada)
-
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useActiveSession } from '../context/ActiveSessionContext.jsx';
@@ -53,7 +51,6 @@ const SetRow = ({ setInfo, exerciseId, isUnilateral, onSetChange, onCompleteSet,
 
     return (
         <div className={`p-3 rounded-lg ${isFullyCompleted ? 'bg-green-100 dark:bg-green-900/40' : 'bg-gray-50 dark:bg-gray-900/30'}`}>
-            {/* Vista para Móvil (flexbox) */}
             <div className="flex flex-col gap-3 md:hidden">
                 <div className="flex items-center justify-between">
                     <span className="font-bold text-lg">Serie {setInfo.setNumber}</span>
@@ -67,7 +64,6 @@ const SetRow = ({ setInfo, exerciseId, isUnilateral, onSetChange, onCompleteSet,
                         </button>
                     </div>
                 </div>
-
                 <div className="grid grid-cols-3 gap-2">
                     <div>
                         <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Peso ({preferences?.weightUnit})</label>
@@ -85,7 +81,6 @@ const SetRow = ({ setInfo, exerciseId, isUnilateral, onSetChange, onCompleteSet,
                         </select>
                     </div>
                 </div>
-
                  <div className="flex justify-center gap-2 mt-2">
                      {isUnilateral ? (
                         <>
@@ -97,8 +92,6 @@ const SetRow = ({ setInfo, exerciseId, isUnilateral, onSetChange, onCompleteSet,
                     )}
                  </div>
             </div>
-
-            {/* Vista para Escritorio (grid) */}
             <div className="hidden md:grid grid-cols-[auto,1fr,1fr,1fr,auto,auto,auto] items-center gap-2">
                 <div className="flex items-center justify-center w-8">
                     {isPR && <Award className="text-yellow-500 animate-pulse" size={20} />}
@@ -123,7 +116,6 @@ const SetRow = ({ setInfo, exerciseId, isUnilateral, onSetChange, onCompleteSet,
                 </div>
                 <button onClick={() => onRemoveSet(exerciseId, setInfo.id)} className="flex justify-center p-1 text-red-500 hover:text-red-400"><Trash2 size={16} /></button>
             </div>
-            
             {placeholderData && ( <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-600/50 mt-3"> <History size={12} /> <span>Última vez: {placeholderData.weight || '0'} {preferences.weightUnit} x {placeholderData.reps || '0'} reps</span> </div> )}
             {showNote && ( <div className="mt-3"><input type="text" name="note" defaultValue={initialData.note} placeholder="Añadir nota..." onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'note', e.target.value)} className="w-full p-2 text-sm bg-gray-200 dark:bg-gray-600 rounded-md"/></div>)}
         </div>
@@ -173,7 +165,10 @@ export default function CreateSessionView({ user }) {
     } = useActiveSession();
     const { preferences } = usePreferences();
     const [isSaving, setIsSaving] = useState(false);
+    
+    // Estados para los modales de confirmación
     const [isFinishConfirmationOpen, setIsFinishConfirmationOpen] = useState(false);
+    const [isUncompletedWarningOpen, setIsUncompletedWarningOpen] = useState(false);
     
     const { checkIsPR, trackNewPR, resetSessionPRs } = usePersonalRecords();
     const [prSets, setPrSets] = useState(new Set());
@@ -290,8 +285,33 @@ export default function CreateSessionView({ user }) {
         }
     };
     
+    const handleFinishClick = () => {
+        let allSetsCompleted = true;
+        for (const exercise of sessionExercises) {
+            for (const set of exercise.sets) {
+                const setData = workoutData[exercise.id]?.[set.setNumber];
+                const isSetCompleted = exercise.isUnilateral
+                    ? setData?.completedLeft && setData?.completedRight
+                    : setData?.completedLeft;
+
+                if (!isSetCompleted) {
+                    allSetsCompleted = false;
+                    break;
+                }
+            }
+            if (!allSetsCompleted) break;
+        }
+
+        if (allSetsCompleted) {
+            setIsFinishConfirmationOpen(true);
+        } else {
+            setIsUncompletedWarningOpen(true);
+        }
+    };
+
     const handleFinishWorkout = useCallback(async () => {
         setIsFinishConfirmationOpen(false);
+        setIsUncompletedWarningOpen(false); 
         setIsSaving(true);
         try {
             await saveWorkoutSession(user.uid, routineId, workoutData, sessionExercises, prSets);
@@ -299,13 +319,8 @@ export default function CreateSessionView({ user }) {
             endSession();
             navigate('/historial');
         } catch (error) {
-            if(error.message.includes("No hay datos")) {
-                alert("No has registrado ningún dato. La sesión no se guardará.");
-                endSession();
-                navigate('/rutinas');
-            } else {
-                alert("Hubo un error al guardar la sesión.");
-            }
+            console.error("Error detallado capturado en la vista:", error);
+            alert(`¡ERROR DETALLADO!\n\nOcurrió un problema al guardar la sesión. Por favor, comparte este mensaje completo para solucionarlo:\n\nNombre del Error: ${error.name}\nMensaje: ${error.message}\nCódigo: ${error.code}\n\nStack (Pila de llamadas): \n${error.stack}`);
         } finally {
             setIsSaving(false);
         }
@@ -320,7 +335,22 @@ export default function CreateSessionView({ user }) {
         <div className="relative min-h-screen pb-16">
             <AddExerciseModal isOpen={isAddExerciseModalOpen} onClose={() => setIsAddExerciseModalOpen(false)} user={user} onExerciseCreated={handleAddOrReplaceExercise}/>
             <GenericModal isOpen={isReplacementModalOpen} onClose={() => setIsReplacementModalOpen(false)} title="Reemplazar Ejercicio"><ReplacementExerciseList user={user} onSelect={(exercise) => { handleAddOrReplaceExercise(exercise); setIsReplacementModalOpen(false); }} onShowCustomCreate={handleShowCustomCreateFromReplacement}/></GenericModal>
-            <ConfirmationModal isOpen={isFinishConfirmationOpen} onClose={() => setIsFinishConfirmationOpen(false)} title="¿Finalizar entrenamiento?" message="Una vez finalizado, se guardará en tu historial. ¿Estás seguro?" onConfirm={handleFinishWorkout} />
+            
+            <ConfirmationModal 
+                isOpen={isFinishConfirmationOpen} 
+                onClose={() => setIsFinishConfirmationOpen(false)} 
+                title="¿Finalizar entrenamiento?" 
+                message="Una vez finalizado, se guardará en tu historial. ¿Estás seguro?" 
+                onConfirm={handleFinishWorkout} 
+            />
+            <ConfirmationModal 
+                isOpen={isUncompletedWarningOpen} 
+                onClose={() => setIsUncompletedWarningOpen(false)} 
+                title="¡Atención!" 
+                message="Tienes series sin marcar como completadas. ¿Deseas finalizar el entrenamiento de todas formas?" 
+                onConfirm={handleFinishWorkout} 
+            />
+
             <Card>
                 <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
                     <div>
@@ -328,7 +358,9 @@ export default function CreateSessionView({ user }) {
                         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{routine?.name || 'Entrenamiento'}</h2>
                         <div className="flex items-center gap-2 mt-2 text-lg text-blue-500 font-semibold"><Clock size={20}/><span>{formatTime(elapsedTime)}</span></div>
                     </div>
-                    <button onClick={() => setIsFinishConfirmationOpen(true)} disabled={isSaving} className="flex items-center gap-2 px-5 py-3 text-white font-semibold rounded-lg shadow bg-red-600 hover:bg-red-500 disabled:bg-opacity-50 disabled:cursor-not-allowed">{isSaving ? <Loader className="animate-spin" size={20} /> : "Finalizar"}</button>
+                    <button onClick={handleFinishClick} disabled={isSaving} className="flex items-center gap-2 px-5 py-3 text-white font-semibold rounded-lg shadow bg-red-600 hover:bg-red-500 disabled:bg-opacity-50 disabled:cursor-not-allowed">
+                        {isSaving ? <Loader className="animate-spin" size={20} /> : "Finalizar"}
+                    </button>
                 </div>
                 <div className="space-y-6">
                     {groupedSessionExercises.length > 0 ? groupedSessionExercises.map((group) => (
