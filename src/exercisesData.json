@@ -3,23 +3,23 @@
     "group": "Abdominales",
     "items": [
       {
-        "id": "crunches",
-        "name": "Encogimientos (Crunches)",
-        "variations": [
-          {
-            "id": "crunch-machine",
-            "name": "en Máquina",
-            "imageUrl": "..."
-          }
-        ]
-      },
-      {
         "id": "leg-raises",
         "name": "Elevaciones de Piernas",
         "variations": [
           {
             "id": "lr-hanging",
             "name": "Colgado en Barra",
+            "imageUrl": "..."
+          }
+        ]
+      },
+      {
+        "id": "crunches",
+        "name": "Encogimientos (Crunches)",
+        "variations": [
+          {
+            "id": "crunch-machine",
+            "name": "en Máquina",
             "imageUrl": "..."
           }
         ]
@@ -285,6 +285,51 @@
     "group": "Cuádriceps",
     "items": [
       {
+        "id": "leg-extension",
+        "name": "Extensión de Cuádriceps",
+        "variations": [
+          {
+            "id": "le-bilateral",
+            "name": "Bilateral",
+            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads"
+          },
+          {
+            "id": "le-unilateral",
+            "name": "Unilateral",
+            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads",
+            "isUnilateral": true
+          },
+          {
+            "id": "le-hmachine",
+            "name": "en Hammer",
+            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads"
+          },
+          {
+            "id": "le-hmachine-uni",
+            "name": "en Hammer Unilateral",
+            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads",
+            "isUnilateral": true
+          }
+        ]
+      },
+      {
+        "id": "leg-press",
+        "name": "Prensa de Piernas",
+        "variations": [
+          {
+            "id": "lp-bilateral",
+            "name": "Bilateral",
+            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads"
+          },
+          {
+            "id": "lp-unilateral",
+            "name": "Unilateral",
+            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads",
+            "isUnilateral": true
+          }
+        ]
+      },
+      {
         "id": "squat",
         "name": "Sentadilla",
         "variations": [
@@ -350,51 +395,6 @@
             "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads"
           }
         ]
-      },
-      {
-        "id": "leg-press",
-        "name": "Prensa de Piernas",
-        "variations": [
-          {
-            "id": "lp-bilateral",
-            "name": "Bilateral",
-            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads"
-          },
-          {
-            "id": "lp-unilateral",
-            "name": "Unilateral",
-            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads",
-            "isUnilateral": true
-          }
-        ]
-      },
-      {
-        "id": "leg-extension",
-        "name": "Extensión de Cuádriceps",
-        "variations": [
-          {
-            "id": "le-bilateral",
-            "name": "Bilateral",
-            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads"
-          },
-          {
-            "id": "le-unilateral",
-            "name": "Unilateral",
-            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads",
-            "isUnilateral": true
-          },
-          {
-            "id": "le-hmachine",
-            "name": "en Hammer",
-            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads"
-          },
-          {
-            "id": "le-hmachine-uni",
-            "name": "en Hammer Unilateral",
-            "imageUrl": "https://placehold.co/100x100/9333ea/ffffff?text=Quads",
-            "isUnilateral": true
-          }
-        ]
       }
     ]
   },
@@ -419,6 +419,17 @@
             "id": "pu-neutral",
             "name": "Agarre Neutro",
             "imageUrl": "https://placehold.co/100x100/16a34a/ffffff?text=Dorsal"
+          }
+        ]
+      },
+      {
+        "id": "face-pull",
+        "name": "Face Pull",
+        "variations": [
+          {
+            "id": "fp-cable",
+            "name": "en Polea con Cuerda",
+            "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
           }
         ]
       },
@@ -479,33 +490,6 @@
                 "isUnilateral": true
               }
             ]
-          }
-        ]
-      },
-      {
-        "id": "face-pull",
-        "name": "Face Pull",
-        "variations": [
-          {
-            "id": "fp-cable",
-            "name": "en Polea con Cuerda",
-            "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
-          }
-        ]
-      },
-      {
-        "id": "t-bar-row",
-        "name": "Remo en Barra T",
-        "variations": [
-          {
-            "id": "tbar-chest-supported",
-            "name": "con Apoyo al Pecho",
-            "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
-          },
-          {
-            "id": "tbar-unsupported",
-            "name": "sin Apoyo",
-            "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
           }
         ]
       },
@@ -702,12 +686,90 @@
             ]
           }
         ]
+      },
+      {
+        "id": "t-bar-row",
+        "name": "Remo en Barra T",
+        "variations": [
+          {
+            "id": "tbar-chest-supported",
+            "name": "con Apoyo al Pecho",
+            "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
+          },
+          {
+            "id": "tbar-unsupported",
+            "name": "sin Apoyo",
+            "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
+          }
+        ]
       }
     ]
   },
   {
     "group": "Femorales",
     "items": [
+      {
+        "id": "good-mornings",
+        "name": "Buenos Días",
+        "variations": [
+          {
+            "id": "gm-barbell",
+            "name": "con Barra",
+            "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
+          }
+        ]
+      },
+      {
+        "id": "leg-curl",
+        "name": "Curl Femoral",
+        "variations": [
+          {
+            "id": "lc-lying",
+            "name": "Acostado en Máquina",
+            "subvariations": [
+              {
+                "id": "lc-lying-bilateral",
+                "name": "Bilateral",
+                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
+              },
+              {
+                "id": "lc-lying-unilateral",
+                "name": "Unilateral",
+                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral",
+                "isUnilateral": true
+              }
+            ]
+          },
+          {
+            "id": "lc-seated",
+            "name": "Sentado en Máquina",
+            "subvariations": [
+              {
+                "id": "lc-seated-bilateral",
+                "name": "Bilateral",
+                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
+              },
+              {
+                "id": "lc-seated-unilateral",
+                "name": "Unilateral",
+                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral",
+                "isUnilateral": true
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "hyperextensions",
+        "name": "Hiperextensiones",
+        "variations": [
+          {
+            "id": "hy-disc",
+            "name": "con Disco",
+            "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
+          }
+        ]
+      },
       {
         "id": "deadlift",
         "name": "Peso Muerto",
@@ -755,68 +817,6 @@
             "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
           }
         ]
-      },
-      {
-        "id": "leg-curl",
-        "name": "Curl Femoral",
-        "variations": [
-          {
-            "id": "lc-lying",
-            "name": "Acostado en Máquina",
-            "subvariations": [
-              {
-                "id": "lc-lying-bilateral",
-                "name": "Bilateral",
-                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
-              },
-              {
-                "id": "lc-lying-unilateral",
-                "name": "Unilateral",
-                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral",
-                "isUnilateral": true
-              }
-            ]
-          },
-          {
-            "id": "lc-seated",
-            "name": "Sentado en Máquina",
-            "subvariations": [
-              {
-                "id": "lc-seated-bilateral",
-                "name": "Bilateral",
-                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
-              },
-              {
-                "id": "lc-seated-unilateral",
-                "name": "Unilateral",
-                "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral",
-                "isUnilateral": true
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "good-mornings",
-        "name": "Buenos Días",
-        "variations": [
-          {
-            "id": "gm-barbell",
-            "name": "con Barra",
-            "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
-          }
-        ]
-      },
-      {
-        "id": "hyperextensions",
-        "name": "Hiperextensiones",
-        "variations": [
-          {
-            "id": "hy-disc",
-            "name": "con Disco",
-            "imageUrl": "https://placehold.co/100x100/a16207/ffffff?text=Femoral"
-          }
-        ]
       }
     ]
   },
@@ -861,23 +861,6 @@
         ]
       },
       {
-        "id": "glute-bridge",
-        "name": "Puente de Glúteos",
-        "variations": [
-          {
-            "id": "gb-barbell",
-            "name": "con Barra",
-            "imageUrl": "https://placehold.co/100x100/ec4899/ffffff?text=Glúteo"
-          },
-          {
-            "id": "gb-uni",
-            "name": "a una Pierna",
-            "imageUrl": "https://placehold.co/100x100/ec4899/ffffff?text=Glúteo",
-            "isUnilateral": true
-          }
-        ]
-      },
-      {
         "id": "glute-kickback",
         "name": "Patada de Glúteo",
         "variations": [
@@ -906,6 +889,23 @@
             "isUnilateral": true
           }
         ]
+      },
+      {
+        "id": "glute-bridge",
+        "name": "Puente de Glúteos",
+        "variations": [
+          {
+            "id": "gb-barbell",
+            "name": "con Barra",
+            "imageUrl": "https://placehold.co/100x100/ec4899/ffffff?text=Glúteo"
+          },
+          {
+            "id": "gb-uni",
+            "name": "a una Pierna",
+            "imageUrl": "https://placehold.co/100x100/ec4899/ffffff?text=Glúteo",
+            "isUnilateral": true
+          }
+        ]
       }
     ]
   },
@@ -913,33 +913,30 @@
     "group": "Hombros",
     "items": [
       {
-        "id": "shoulder-press",
-        "name": "Press de Hombros (press militar)",
+        "id": "front-raises",
+        "name": "Elevaciones Frontales",
         "variations": [
           {
-            "id": "sp-barbell",
-            "name": "con Barra",
-            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
-          },
-          {
-            "id": "sp-dumbbell",
+            "id": "fr-dumbbell",
             "name": "con Mancuernas",
             "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
           },
           {
-            "id": "sp-smith",
-            "name": "en Smith",
+            "id": "fr-dumbbell-uni",
+            "name": "con Mancuernas unilaterales",
+            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro",
+            "isUnilateral": true
+          },
+          {
+            "id": "fr-cable",
+            "name": "con Polea",
             "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
           },
           {
-            "id": "sp-machine",
-            "name": "en Máquina",
-            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
-          },
-          {
-            "id": "sp-hmachine",
-            "name": "en Hammer",
-            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
+            "id": "fr-cable-uni",
+            "name": "con Polea unilateral",
+            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro",
+            "isUnilateral": true
           }
         ]
       },
@@ -994,30 +991,33 @@
         ]
       },
       {
-        "id": "front-raises",
-        "name": "Elevaciones Frontales",
+        "id": "shoulder-press",
+        "name": "Press de Hombros (press militar)",
         "variations": [
           {
-            "id": "fr-dumbbell",
+            "id": "sp-barbell",
+            "name": "con Barra",
+            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
+          },
+          {
+            "id": "sp-dumbbell",
             "name": "con Mancuernas",
             "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
           },
           {
-            "id": "fr-dumbbell-uni",
-            "name": "con Mancuernas unilaterales",
-            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro",
-            "isUnilateral": true
-          },
-          {
-            "id": "fr-cable",
-            "name": "con Polea",
+            "id": "sp-smith",
+            "name": "en Smith",
             "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
           },
           {
-            "id": "fr-cable-uni",
-            "name": "con Polea unilateral",
-            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro",
-            "isUnilateral": true
+            "id": "sp-machine",
+            "name": "en Máquina",
+            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
+          },
+          {
+            "id": "sp-hmachine",
+            "name": "en Hammer",
+            "imageUrl": "https://placehold.co/100x100/db2777/ffffff?text=Hombro"
           }
         ]
       },
@@ -1131,90 +1131,6 @@
   {
     "group": "Pecho",
     "items": [
-      {
-        "id": "press",
-        "name": "Press",
-        "variations": [
-          {
-            "id": "bp",
-            "name": "Plano",
-            "subvariations": [
-              {
-                "id": "bp-barbell",
-                "name": "con Barra",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "bp-dumbbell",
-                "name": "con Mancuernas",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "bp-machine",
-                "name": "en Máquina",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "bp-hmachine",
-                "name": "en Hammer",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              }
-            ]
-          },
-          {
-            "id": "inc",
-            "name": "Inclinado",
-            "subvariations": [
-              {
-                "id": "inc-barbell",
-                "name": "con Barra",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "inc-dumbbell",
-                "name": "con Mancuernas",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "inc-machine",
-                "name": "en Máquina",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "inc-hmachine",
-                "name": "en Hammer",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              }
-            ]
-          },
-          {
-            "id": "dec",
-            "name": "Declinado",
-            "subvariations": [
-              {
-                "id": "dec-barbell",
-                "name": "con Barra",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "dec-dumbbell",
-                "name": "con Mancuernas",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "dec-machine",
-                "name": "en Máquina",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              },
-              {
-                "id": "dec-hmachine",
-                "name": "en Hammer",
-                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
-              }
-            ]
-          }
-        ]
-      },
       {
         "id": "flys",
         "name": "Aperturas",
@@ -1445,11 +1361,124 @@
             ]
           }
         ]
+      },
+      {
+        "id": "press",
+        "name": "Press",
+        "variations": [
+          {
+            "id": "bp",
+            "name": "Plano",
+            "subvariations": [
+              {
+                "id": "bp-barbell",
+                "name": "con Barra",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "bp-dumbbell",
+                "name": "con Mancuernas",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "bp-machine",
+                "name": "en Máquina",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "bp-hmachine",
+                "name": "en Hammer",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              }
+            ]
+          },
+          {
+            "id": "inc",
+            "name": "Inclinado",
+            "subvariations": [
+              {
+                "id": "inc-barbell",
+                "name": "con Barra",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "inc-dumbbell",
+                "name": "con Mancuernas",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "inc-machine",
+                "name": "en Máquina",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "inc-hmachine",
+                "name": "en Hammer",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              }
+            ]
+          },
+          {
+            "id": "dec",
+            "name": "Declinado",
+            "subvariations": [
+              {
+                "id": "dec-barbell",
+                "name": "con Barra",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "dec-dumbbell",
+                "name": "con Mancuernas",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "dec-machine",
+                "name": "en Máquina",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              },
+              {
+                "id": "dec-hmachine",
+                "name": "en Hammer",
+                "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
+              }
+            ]
+          }
+        ]
       }
     ]
   },
   {
-
+    "group": "test",
+    "items": [
+      {
+        "id": "test",
+        "name": "test",
+        "variations": [
+          {
+            "id": "1",
+            "name": "1",
+            "isUnilateral": false,
+            "subVariations": [
+              {
+                "id": "2",
+                "name": "2",
+                "isUnilateral": false,
+                "executionTypes": [
+                  {
+                    "id": "3",
+                    "name": "3",
+                    "isUnilateral": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
     "group": "Triceps",
     "items": [
       {
