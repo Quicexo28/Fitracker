@@ -3,7 +3,7 @@
     "group": "Abdominales",
     "items": [
       {
-        "id": "leg-raises",
+        "id": "lr",
         "name": "Elevaciones de Piernas",
         "variations": [
           {
@@ -36,7 +36,7 @@
         ]
       },
       {
-        "id": "pallof-press",
+        "id": "pp",
         "name": "Press Pallof",
         "variations": [
           {
@@ -53,7 +53,7 @@
     "group": "Abductores",
     "items": [
       {
-        "id": "hip-abduction",
+        "id": "hab",
         "name": "Abducción de Cadera",
         "variations": [
           {
@@ -75,7 +75,7 @@
     "group": "Aductores",
     "items": [
       {
-        "id": "hip-adduction",
+        "id": "had",
         "name": "Aducción de Cadera",
         "variations": [
           {
@@ -97,7 +97,7 @@
     "group": "Bíceps",
     "items": [
       {
-        "id": "biceps-curl-base",
+        "id": "bc",
         "name": "Curl de Bíceps",
         "variations": [
           {
@@ -285,7 +285,7 @@
     "group": "Cuádriceps",
     "items": [
       {
-        "id": "leg-extension",
+        "id": "le",
         "name": "Extensión de Cuádriceps",
         "variations": [
           {
@@ -313,7 +313,7 @@
         ]
       },
       {
-        "id": "leg-press",
+        "id": "lp",
         "name": "Prensa de Piernas",
         "variations": [
           {
@@ -330,7 +330,7 @@
         ]
       },
       {
-        "id": "squat",
+        "id": "sq",
         "name": "Sentadilla",
         "variations": [
           {
@@ -373,7 +373,7 @@
         ]
       },
       {
-        "id": "bulgarian-split-squat",
+        "id": "bss",
         "name": "Sentadilla Búlgara",
         "variations": [
           {
@@ -402,7 +402,7 @@
     "group": "Espalda",
     "items": [
       {
-        "id": "pullups",
+        "id": "pu",
         "name": "Dominadas",
         "variations": [
           {
@@ -423,7 +423,7 @@
         ]
       },
       {
-        "id": "face-pull",
+        "id": "fp",
         "name": "Face Pull",
         "variations": [
           {
@@ -434,7 +434,7 @@
         ]
       },
       {
-        "id": "lat-pulldown",
+        "id": "lpd",
         "name": "Jalón al Pecho",
         "variations": [
           {
@@ -688,16 +688,16 @@
         ]
       },
       {
-        "id": "t-bar-row",
+        "id": "tbr",
         "name": "Remo en Barra T",
         "variations": [
           {
-            "id": "tbar-chest-supported",
-            "name": "con Apoyo al Pecho",
+            "id": "tbr-supported",
+            "name": "con Apoyo",
             "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
           },
           {
-            "id": "tbar-unsupported",
+            "id": "tbr-unsupported",
             "name": "sin Apoyo",
             "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
           }
@@ -709,7 +709,7 @@
     "group": "Femorales",
     "items": [
       {
-        "id": "good-mornings",
+        "id": "gm",
         "name": "Buenos Días",
         "variations": [
           {
@@ -720,7 +720,7 @@
         ]
       },
       {
-        "id": "leg-curl",
+        "id": "lc",
         "name": "Curl Femoral",
         "variations": [
           {
@@ -760,7 +760,7 @@
         ]
       },
       {
-        "id": "hyperextensions",
+        "id": "hy",
         "name": "Hiperextensiones",
         "variations": [
           {
@@ -771,7 +771,7 @@
         ]
       },
       {
-        "id": "deadlift",
+        "id": "dl",
         "name": "Peso Muerto",
         "variations": [
           {
@@ -824,7 +824,7 @@
     "group": "Glúteos",
     "items": [
       {
-        "id": "hip-thrust",
+        "id": "ht",
         "name": "Hip Thrust",
         "variations": [
           {
@@ -861,7 +861,7 @@
         ]
       },
       {
-        "id": "glute-kickback",
+        "id": "gk",
         "name": "Patada de Glúteo",
         "variations": [
           {
@@ -891,7 +891,7 @@
         ]
       },
       {
-        "id": "glute-bridge",
+        "id": "gb",
         "name": "Puente de Glúteos",
         "variations": [
           {
@@ -913,7 +913,7 @@
     "group": "Hombros",
     "items": [
       {
-        "id": "front-raises",
+        "id": "fr",
         "name": "Elevaciones Frontales",
         "variations": [
           {
@@ -941,7 +941,7 @@
         ]
       },
       {
-        "id": "lateral-raises",
+        "id": "lr",
         "name": "Elevaciones Laterales",
         "variations": [
           {
@@ -991,7 +991,7 @@
         ]
       },
       {
-        "id": "shoulder-press",
+        "id": "sp",
         "name": "Press de Hombros (press militar)",
         "variations": [
           {
@@ -1022,7 +1022,7 @@
         ]
       },
       {
-        "id": "rear-delt-flys",
+        "id": "rdf",
         "name": "Vuelos Posteriores",
         "variations": [
           {
@@ -1054,7 +1054,7 @@
     "group": "Pantorrillas",
     "items": [
       {
-        "id": "calf-raises",
+        "id": "cr",
         "name": "Elevación de Talones",
         "variations": [
           {
@@ -1132,7 +1132,7 @@
     "group": "Pecho",
     "items": [
       {
-        "id": "flys",
+        "id": "fly",
         "name": "Aperturas",
         "variations": [
           {
@@ -1223,20 +1223,20 @@
         ]
       },
       {
-        "id": "cable-crossovers",
+        "id": "cc",
         "name": "cruces de polea",
         "variations": [
           {
-            "id": "cable-cross-up",
+            "id": "cc-up",
             "name": "polea alta",
             "subvariations": [
               {
-                "id": "cable-cross-up",
+                "id": "cc-up-bi",
                 "name": "Bilateral",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "cable-cross-up-uni",
+                "id": "cc-up-uni",
                 "name": "Unilateral",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho",
                 "isUnilateral": true
@@ -1244,16 +1244,16 @@
             ]
           },
           {
-            "id": "cable-cross-down",
+            "id": "cc-down",
             "name": "polea baja",
             "subvariations": [
               {
-                "id": "cable-cross-down",
+                "id": "cc-down-bi",
                 "name": "Bilateral",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "cable-cross-down-uni",
+                "id": "cc-down-uni",
                 "name": "Unilateral",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho",
                 "isUnilateral": true
@@ -1261,16 +1261,16 @@
             ]
           },
           {
-            "id": "cable-cross-mid",
+            "id": "cc-mid",
             "name": "polea media",
             "subvariations": [
               {
-                "id": "cable-cross-mid",
+                "id": "cc-mid-bi",
                 "name": "Bilateral",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "cable-cross-mid-uni",
+                "id": "cc-mid-uni",
                 "name": "Unilateral",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho",
                 "isUnilateral": true
@@ -1280,7 +1280,7 @@
         ]
       },
       {
-        "id": "push-ups",
+        "id": "pu",
         "name": "Flexiones",
         "variations": [
           {
@@ -1363,30 +1363,30 @@
         ]
       },
       {
-        "id": "press",
-        "name": "Press",
+        "id": "bp",
+        "name": "Press Banca",
         "variations": [
           {
-            "id": "bp",
+            "id": "bp-flat",
             "name": "Plano",
             "subvariations": [
               {
-                "id": "bp-barbell",
+                "id": "bp-flat-barbell",
                 "name": "con Barra",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "bp-dumbbell",
+                "id": "bp-flat-dumbbell",
                 "name": "con Mancuernas",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "bp-machine",
+                "id": "bp-flat-machine",
                 "name": "en Máquina",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "bp-hmachine",
+                "id": "bp-flat-hmachine",
                 "name": "en Hammer",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               }
@@ -1397,22 +1397,22 @@
             "name": "Inclinado",
             "subvariations": [
               {
-                "id": "inc-barbell",
+                "id": "bp-inc-barbell",
                 "name": "con Barra",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "inc-dumbbell",
+                "id": "bp-inc-dumbbell",
                 "name": "con Mancuernas",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "inc-machine",
+                "id": "bp-inc-machine",
                 "name": "en Máquina",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "inc-hmachine",
+                "id": "bp-inc-hmachine",
                 "name": "en Hammer",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               }
@@ -1423,22 +1423,22 @@
             "name": "Declinado",
             "subvariations": [
               {
-                "id": "dec-barbell",
+                "id": "bp-dec-barbell",
                 "name": "con Barra",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "dec-dumbbell",
+                "id": "bp-dec-dumbbell",
                 "name": "con Mancuernas",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "dec-machine",
+                "id": "bp-dec-machine",
                 "name": "en Máquina",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               },
               {
-                "id": "dec-hmachine",
+                "id": "bp-dec-hmachine",
                 "name": "en Hammer",
                 "imageUrl": "https://placehold.co/100x100/3b82f6/ffffff?text=Pecho"
               }
@@ -1452,15 +1452,15 @@
     "group": "Triceps",
     "items": [
       {
-        "id": "tricep-push",
-        "name": "Extensión de Tríceps en Polea",
+        "id": "tp",
+        "name": "Extensión de Tríceps",
         "variations": [
           {
             "id": "tp-uperhead",
             "name": "encima de la Cabeza",
             "subvariations": [
               {
-                "id": "tp-uperhead",
+                "id": "tp-uperhead-standard",
                 "name": "estandar",
                 "imageUrl": "https://placehold.co/100x100/15803d/ffffff?text=Esp.Alta"
               },
@@ -1492,7 +1492,7 @@
         ]
       },
       {
-        "id": "tricep-dips",
+        "id": "td",
         "name": "Fondos en Paralelas",
         "variations": [
           {
@@ -1503,7 +1503,7 @@
         ]
       },
       {
-        "id": "tricep-kickback",
+        "id": "tk",
         "name": "Patada de Tríceps",
         "variations": [
           {
@@ -1533,7 +1533,7 @@
         ]
       },
       {
-        "id": "press",
+        "id": "tp",
         "name": "Press de Tríceps",
         "variations": [
           {
@@ -1565,7 +1565,7 @@
         ]
       },
       {
-        "id": "skullcrushers",
+        "id": "sc",
         "name": "Rompecráneos",
         "variations": [
           {
