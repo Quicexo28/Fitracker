@@ -1,16 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
-import { exerciseDatabase } from '../exercises.js';
+// import { exerciseDatabase } from '../exercises.js'; // <-- CAMBIO: Eliminado
+import { useExercises } from '../hooks/useExercises.jsx'; // <-- CAMBIO: Importar hook
 import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
 import Card from './Card.jsx';
 import ExerciseDetailForm from './ExerciseDetailForm.jsx';
 import AddExerciseModal from './AddExerciseModal.jsx';
+import ThemedLoader from './ThemedLoader.jsx'; // <-- CAMBIO: Importar Loader
 import { X, Search, ChevronRight, ArrowLeft, PlusCircle } from 'lucide-react';
 
 const normalizeText = (text = '') => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routineId, onExerciseAdded }) {
+    // ... (tus estados no cambian) ...
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedExercise, setSelectedExercise] = useState(null);
@@ -20,18 +23,28 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
     const [expandedVariationId, setExpandedVariationId] = useState(null);
     const [expandedSubVariationId, setExpandedSubVariationId] = useState(null);
 
+
     const customExercisesPath = useMemo(() => user ? `users/${user.uid}/exercises` : null, [user]);
-    const { data: customExercises, loading } = useFirestoreCollection(customExercisesPath, { orderBy: 'name', direction: 'asc' });
+    const { data: customExercises, loading: customLoading } = useFirestoreCollection(customExercisesPath, { orderBy: 'name', direction: 'asc' });
+    
+    // --- INICIO DE CAMBIOS ---
+    const { allExercises: defaultMovements, allMuscleGroups, loading: defaultLoading, error: defaultError } = useExercises();
+    
+    const combinedLoading = customLoading || defaultLoading;
+    // --- FIN DE CAMBIOS ---
+
 
     const filteredExercises = useMemo(() => {
         if (!selectedCategory) return [];
-        const defaultMovements = exerciseDatabase.flatMap(group => group.items.map(item => ({ ...item, group: group.group, isCustom: false })));
+        
+        // CAMBIO: 'defaultMovements' ahora viene del hook
         const allExercises = [...defaultMovements, ...customExercises.map(ex => ({ ...ex, isCustom: true, id: ex.id }))];
         
         let filtered = allExercises;
         if (selectedCategory === 'custom') { filtered = customExercises; }
-        else if (selectedCategory !== 'all') { filtered = filtered.filter(ex => ex.group === selectedCategory); }
+        else if (selectedCategory !== 'all') { filtered = filtered.filter(ex => ex.groupName === selectedCategory); } // CAMBIO: 'group' a 'groupName'
         
+        // ... (tu lógica de búsqueda no cambia) ...
         if (searchTerm) {
             const normalizedSearchTerm = normalizeText(searchTerm);
             filtered = filtered.filter(ex => 
@@ -46,8 +59,9 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
             );
         }
         return filtered;
-    }, [customExercises, searchTerm, selectedCategory]);
+    }, [customExercises, searchTerm, selectedCategory, defaultMovements]); // CAMBIO: Añadir defaultMovements
     
+    // ... (El resto de tus funciones no cambian) ...
     const routineExercisesPath = useMemo(() => user && routineId ? `users/${user.uid}/routines/${routineId}/exercises` : null, [user, routineId]);
 
     const selectExercise = (exerciseData) => {
@@ -84,18 +98,18 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
     };
 
     const handleExecutionTypeClick = (base, variation, subVar, execType) => {
-        selectExercise({ ...execType, name: `${base.name}: ${subVar.name} (${execType.name})`, group: base.group });
+        selectExercise({ ...execType, name: `${base.name}: ${subVar.name} (${execType.name})`, group: base.groupName }); // CAMBIO: group a groupName
     };
     const handleSubVariationClick = (base, variation, subVar) => {
         if (!subVar.executionTypes || subVar.executionTypes.length === 0) {
-            selectExercise({ ...subVar, name: `${base.name}: ${variation.name} (${subVar.name})`, group: base.group });
+            selectExercise({ ...subVar, name: `${base.name}: ${variation.name} (${subVar.name})`, group: base.groupName }); // CAMBIO: group a groupName
         } else {
             setExpandedSubVariationId(subVar.id === expandedSubVariationId ? null : subVar.id);
         }
     };
     const handleVariationClick = (base, variation) => {
         if (!variation.subVariations || variation.subVariations.length === 0) {
-            selectExercise({ ...variation, name: `${base.name}: ${variation.name}`, group: base.group });
+            selectExercise({ ...variation, name: `${base.name}: ${variation.name}`, group: base.groupName }); // CAMBIO: group a groupName
         } else {
             setExpandedVariationId(variation.id === expandedVariationId ? null : variation.id);
         }
@@ -119,7 +133,8 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
         onClose();
     };
     
-    const muscleGroups = useMemo(() => [...new Set(exerciseDatabase.map(group => group.group))], []);
+    // CAMBIO: Usar allMuscleGroups del hook
+    const muscleGroups = useMemo(() => allMuscleGroups, [allMuscleGroups]);
 
     if (!isOpen) return null;
 
@@ -136,37 +151,47 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
                     </h3>
                     <button onClick={handleClose} className="p-1"><X /></button>
                 </div>
-                
-                {!selectedCategory && !selectedExercise && (
-                    <>
-                        <button onClick={() => setIsCreatingNew(true)} className="w-full flex items-center justify-center gap-2 p-3 mb-4 text-sm font-semibold text-blue-600 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900">
-                            <PlusCircle size={18}/>Crear Ejercicio Personalizado
-                        </button>
-                        <ul className="space-y-2 h-[50vh] overflow-y-auto border-t border-gray-200 dark:border-gray-700 pt-4">
-                            <li onClick={() => setSelectedCategory('all')} className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer font-semibold"><span>Todos</span><ChevronRight /></li>
-                            <li onClick={() => setSelectedCategory('custom')} className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer font-semibold"><span>Mis Ejercicios</span><ChevronRight /></li>
-                            {muscleGroups.map(group => (
-                                <li key={group} onClick={() => setSelectedCategory(group)} className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"><span>{group}</span><ChevronRight /></li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-                
-                {selectedCategory && !selectedExercise && (
-                    <>
-                        <div className="flex items-center gap-4 mb-4">
-                            <button onClick={() => setSelectedCategory(null)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><ArrowLeft /></button>
-                            <div className="relative w-full"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} /><input type="text" placeholder={`Buscar en ${selectedCategory}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-3 pl-10 bg-gray-100 dark:bg-gray-700 rounded-lg"/></div>
-                        </div>
-                        <ul className="space-y-1 h-[50vh] overflow-y-auto pr-2">
-                            {loading ? <p>Cargando...</p> : filteredExercises.map(exercise => (
-                                <li key={exercise.id}>
-                                    <div onClick={() => handleExerciseClick(exercise)} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
-                                        <span>{exercise.name} {exercise.isCustom && '(Custom)'}</span>
-                                        {exercise.variations && exercise.variations.length > 0 && <ChevronRight size={20} className={`transition-transform ${expandedExerciseId === exercise.id ? 'rotate-90' : ''}`} />}
-                                    </div>
-                                    
-                                    {exercise.variations && expandedExerciseId === exercise.id && (
+
+                {/* --- INICIO DE CAMBIOS --- */}
+                {combinedLoading ? (
+                    <ThemedLoader />
+                ) : defaultError ? (
+                    <p className="text-red-500">Error al cargar ejercicios base.</p>
+                ) : (
+                <>
+                {/* --- FIN DE CAMBIOS --- */}
+                    {!selectedCategory && !selectedExercise && (
+                        <>
+                            <button onClick={() => setIsCreatingNew(true)} className="w-full flex items-center justify-center gap-2 p-3 mb-4 text-sm font-semibold text-blue-600 bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900">
+                                <PlusCircle size={18}/>Crear Ejercicio Personalizado
+                            </button>
+                            <ul className="space-y-2 h-[50vh] overflow-y-auto border-t border-gray-200 dark:border-gray-700 pt-4">
+                                <li onClick={() => setSelectedCategory('all')} className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer font-semibold"><span>Todos</span><ChevronRight /></li>
+                                <li onClick={() => setSelectedCategory('custom')} className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer font-semibold"><span>Mis Ejercicios</span><ChevronRight /></li>
+                                {muscleGroups.map(group => (
+                                    <li key={group} onClick={() => setSelectedCategory(group)} className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"><span>{group}</span><ChevronRight /></li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
+                    
+                    {selectedCategory && !selectedExercise && (
+                        <>
+                            <div className="flex items-center gap-4 mb-4">
+                                <button onClick={() => setSelectedCategory(null)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><ArrowLeft /></button>
+                                <div className="relative w-full"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} /><input type="text" placeholder={`Buscar en ${selectedCategory}...`} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full p-3 pl-10 bg-gray-100 dark:bg-gray-700 rounded-lg"/></div>
+                            </div>
+                            <ul className="space-y-1 h-[50vh] overflow-y-auto pr-2">
+                                {/* CAMBIO: 'loading' renombrado a 'customLoading' para evitar conflicto */}
+                                {customLoading ? <p>Cargando...</p> : filteredExercises.map(exercise => (
+                                    <li key={exercise.id}>
+                                        <div onClick={() => handleExerciseClick(exercise)} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                                            <span>{exercise.name} {exercise.isCustom && '(Custom)'}</span>
+                                            {exercise.variations && exercise.variations.length > 0 && <ChevronRight size={20} className={`transition-transform ${expandedExerciseId === exercise.id ? 'rotate-90' : ''}`} />}
+                                        </div>
+                                        
+                                        {/* ... (Tu lógica de renderizado de variaciones anidadas no cambia) ... */}
+                                        {exercise.variations && expandedExerciseId === exercise.id && (
                                         <ul className="pl-4 py-1 space-y-1">
                                             {exercise.variations.map(variation => (
                                                 <li key={variation.id}>
@@ -200,14 +225,16 @@ export default function AddExerciseToRoutineModal({ isOpen, onClose, user, routi
                                             ))}
                                         </ul>
                                     )}
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
 
-                {selectedExercise && (
-                    <ExerciseDetailForm exercise={selectedExercise} onSave={handleAddExercise} onCancel={() => setSelectedExercise(null)} isSubmitting={isSubmitting} mode="add" />
+                    {selectedExercise && (
+                        <ExerciseDetailForm exercise={selectedExercise} onSave={handleAddExercise} onCancel={() => setSelectedExercise(null)} isSubmitting={isSubmitting} mode="add" />
+                    )}
+                </>
                 )}
             </Card>
         </div>

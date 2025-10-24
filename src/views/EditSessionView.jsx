@@ -121,7 +121,7 @@ export default function EditSessionView({ user }) {
     };
 
     const handleCompleteSet = (exerciseId, setNumber, isCompleted) => {
-        setWorkoutData(p => ({ ...p, [exerciseId]: { ...p[exerciseId], [setNumber]: { ...p[exerciseId]?.[setNumber], completed: isCompleted } } }));
+        setWorkoutData(p => ({ ...p, [exerciseId]: { ...p[exerciseId], [setNumber]: { ...p[key]?.[setNumber], completed: isCompleted } } }));
     };
 
     const handleRemoveSet = (exerciseId, setIdToRemove) => {

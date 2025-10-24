@@ -2,10 +2,11 @@ import React, { useState, useMemo, memo } from 'react';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
 import { uploadImage } from '../firebase/imageService.js';
-import { exerciseDatabase } from '../exercises.js';
+import { useExercises } from '../hooks/useExercises.jsx'; // <-- CAMBIO: Importar hook
 import { Plus, X, Loader, Upload } from 'lucide-react';
 import Card from './Card.jsx';
 import toast from 'react-hot-toast';
+import ThemedLoader from './ThemedLoader.jsx'; // <-- CAMBIO: Importar Loader
 
 function AddExerciseModal({ isOpen, onClose, user, onExerciseCreated }) {
     const [exerciseName, setExerciseName] = useState('');
@@ -16,6 +17,10 @@ function AddExerciseModal({ isOpen, onClose, user, onExerciseCreated }) {
     const [imagePreview, setImagePreview] = useState(null);
     const exercisesPath = useMemo(() => user ? `users/${user.uid}/exercises` : null, [user]);
 
+    // --- INICIO DE CAMBIOS ---
+    const { allMuscleGroups, loading, error } = useExercises();
+    // --- FIN DE CAMBIOS ---
+
     const clearFormAndClose = () => {
         setExerciseName('');
         setMuscleGroup('');
@@ -25,6 +30,7 @@ function AddExerciseModal({ isOpen, onClose, user, onExerciseCreated }) {
         onClose();
     };
     
+    // ... (El resto de tus funciones handleImageChange y handleAddExercise no cambian) ...
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
@@ -83,6 +89,12 @@ function AddExerciseModal({ isOpen, onClose, user, onExerciseCreated }) {
                     <h3 className="text-xl font-semibold">Añadir Nuevo Ejercicio</h3>
                     <button onClick={clearFormAndClose} className="p-1" disabled={isSubmitting}><X /></button>
                 </div>
+
+                {/* --- INICIO DE CAMBIOS --- */}
+                {loading && <ThemedLoader />}
+                {error && <p className="text-red-500">Error al cargar grupos musculares.</p>}
+                
+                {!loading && !error && (
                 <form onSubmit={handleAddExercise} className="space-y-4">
                     <div>
                         <label htmlFor="ex-name" className="block text-sm font-medium">Nombre del Ejercicio</label>
@@ -92,9 +104,11 @@ function AddExerciseModal({ isOpen, onClose, user, onExerciseCreated }) {
                         <label htmlFor="ex-group" className="block text-sm font-medium">Grupo Muscular</label>
                         <select id="ex-group" value={muscleGroup} onChange={e => setMuscleGroup(e.target.value)} className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-600 rounded-md">
                             <option value="">Selecciona un grupo...</option>
-                            {[...new Set(exerciseDatabase.map(g => g.group))].sort().map(g => <option key={g} value={g}>{g}</option>)}
+                            {/* CAMBIO: Usar allMuscleGroups del hook */}
+                            {allMuscleGroups.map(g => <option key={g} value={g}>{g}</option>)}
                         </select>
                     </div>
+                    {/* ... (El resto de tu formulario no cambia) ... */}
                     <div className="flex items-center gap-2">
                         <input id="isUnilateral" type="checkbox" checked={isUnilateral} onChange={(e) => setIsUnilateral(e.target.checked)} className="h-4 w-4 rounded text-blue-600 focus:ring-blue-500" />
                         <label htmlFor="isUnilateral" className="text-sm font-medium">Es un ejercicio unilateral</label>
@@ -128,6 +142,8 @@ function AddExerciseModal({ isOpen, onClose, user, onExerciseCreated }) {
                         </button>
                     </div>
                 </form>
+                )}
+                {/* --- FIN DE CAMBIOS --- */}
             </Card>
         </div>
     );

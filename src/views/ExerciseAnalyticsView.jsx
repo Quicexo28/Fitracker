@@ -2,12 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
 import useFirestoreDocument from '../hooks/useFirestoreDocument.jsx';
+import { useExercises } from '../hooks/useExercises.jsx'; // <-- CAMBIO: Importar hook
 import ProgressChart from '../components/ProgressChart.jsx';
 import Card from '../components/Card.jsx';
 import ThemedLoader from '../components/ThemedLoader.jsx';
 import { ArrowLeft, BarChart2 } from 'lucide-react';
-import { exerciseDatabase } from '../exercises.js';
+// import { exerciseDatabase } from '../exercises.js'; // <-- CAMBIO: Eliminado
 
+// ... (tus funciones formatChartDate y calculateOneRepMax no cambian) ...
 const formatChartDate = (timestamp) => {
     if (!timestamp) return '';
     return new Date(timestamp.seconds * 1000).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' });
@@ -33,26 +35,28 @@ export default function ExerciseAnalyticsView({ user }) {
     const customExercisePath = useMemo(() => user ? `users/${user.uid}/exercises/${exerciseId}` : null, [user, exerciseId]);
     const { document: customExerciseDoc, loading: customExerciseLoading } = useFirestoreDocument(customExercisePath);
 
-    // --- LÓGICA MEJORADA PARA ENCONTRAR EL NOMBRE ---
+    // --- INICIO DE CAMBIOS ---
+    const { getExerciseNameById, loading: exercisesLoading } = useExercises();
+
+    // Combina todos los estados de carga
+    const loading = sessionsLoading || customExerciseLoading || exercisesLoading;
+
     const exerciseName = useMemo(() => {
+        // 1. Prioriza el nombre del ejercicio personalizado si existe
         if (customExerciseDoc) return customExerciseDoc.name;
+        
+        // 2. Busca en la base de datos de ejercicios por defecto
+        const defaultName = getExerciseNameById(exerciseId);
+        if (defaultName !== 'Ejercicio Desconocido') return defaultName;
 
-        for (const group of exerciseDatabase) {
-            for (const item of group.items) {
-                if (item.id === exerciseId) return item.name;
-                
-                if (item.variations) {
-                    const foundVariation = item.variations.find(v => v.id === exerciseId);
-                    if (foundVariation) {
-                        return `${item.name} ${foundVariation.name}`;
-                    }
-                }
-            }
-        }
+        // 3. Fallback
         return 'Análisis de Ejercicio';
-    }, [customExerciseDoc, exerciseId]);
+    }, [customExerciseDoc, exerciseId, getExerciseNameById]); // <-- CAMBIO: Añadir getExerciseNameById
+    // --- FIN DE CAMBIOS ---
 
-     const chartData = useMemo(() => {
+
+    const chartData = useMemo(() => {
+        // ... (tu lógica de chartData no cambia) ...
         const labels = [];
         const maxWeightData = [];
         const volumeData = [];
@@ -78,13 +82,15 @@ export default function ExerciseAnalyticsView({ user }) {
     }, [sessions, exerciseId]);
 
     const renderActiveChart = () => {
+        // ... (tu lógica de renderActiveChart no cambia) ...
         const dataSetMapping = { maxWeight: chartData.datasets?.[0], volume: chartData.datasets?.[1], oneRM: chartData.datasets?.[2] };
         const selectedDataSet = dataSetMapping[activeChart];
         if (!selectedDataSet) return null;
         return <ProgressChart chartData={{ labels: chartData.labels, datasets: [selectedDataSet] }} />;
     };
 
-    if (sessionsLoading || customExerciseLoading) return <ThemedLoader />;
+    // CAMBIO: Usar la variable de carga combinada
+    if (loading) return <ThemedLoader />; 
 
     return (
         <Card>
@@ -95,6 +101,7 @@ export default function ExerciseAnalyticsView({ user }) {
                 <BarChart2 /> {exerciseName}
             </h2>
 
+            {/* ... (El resto de tu JSX no cambia) ... */}
             {chartData.labels.length > 1 ? (
                 <div>
                     <div className="flex items-center border-b border-gray-200 dark:border-gray-700 mb-4">
