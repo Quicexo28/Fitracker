@@ -1,3 +1,4 @@
+// src/hooks/useSessionManager.jsx
 import { useState } from 'react';
 import useUndo from './useUndo.jsx';
 
@@ -17,22 +18,19 @@ export default function useSessionManager(sessionExercises, setSessionExercises)
         if (replacementTarget) {
             setSessionExercises(prev => prev.map(ex => {
                 if (ex.id === replacementTarget) {
-                    // Mantenemos el ID original (replacementTarget) y las propiedades de orden
-                    // pero actualizamos el resto de los datos con los del nuevo ejercicio
                     return { 
-                        ...newExerciseData, // Nuevos datos (nombre, grupo, isUnilateral, etc.)
-                        id: replacementTarget, // Mantenemos el ID original para DND y referencias
-                        exerciseId: exercise.id, // Guardamos el ID real del ejercicio base por si acaso
-                        addedAt: ex.addedAt, // Mantenemos posición
-                        supersetId: ex.supersetId, // Mantenemos superset
-                        supersetOrder: ex.supersetOrder // Mantenemos orden en superset
+                        ...newExerciseData,
+                        id: replacementTarget,
+                        exerciseId: exercise.id,
+                        addedAt: ex.addedAt,
+                        supersetId: ex.supersetId,
+                        supersetOrder: ex.supersetOrder
                     };
                 }
                 return ex;
             }));
             setReplacementTarget(null);
         } else {
-            // Añadir nuevo
             setSessionExercises(prev => [...prev, { ...newExerciseData, addedAt: { seconds: Date.now() / 1000 } }]);
         }
     };
@@ -62,20 +60,66 @@ export default function useSessionManager(sessionExercises, setSessionExercises)
         }));
     };
 
+    // --- LÓGICA MODIFICADA ---
     const handleRemoveSet = (exerciseId, setId) => {
-        const callback = () => {
-            setSessionExercises(prev => prev.map(ex => 
-                ex.id === exerciseId ? { ...ex, sets: ex.sets.filter(s => s.id !== setId) } : ex
-            ));
+        // 1. Encontrar los datos para poder restaurarlos
+        let exerciseToRestore;
+        let setToRestore;
+        let setIndex = -1;
+        
+        exerciseToRestore = sessionExercises.find(ex => ex.id === exerciseId);
+        if (exerciseToRestore) {
+            setToRestore = exerciseToRestore.sets.find(s => s.id === setId);
+            setIndex = exerciseToRestore.sets.findIndex(s => s.id === setId);
+        }
+
+        if (!setToRestore || setIndex === -1) return; // No se encontró la serie
+
+        // 2. Ejecutar la acción (Eliminar la serie) INMEDIATAMENTE
+        setSessionExercises(prev => prev.map(ex => 
+            ex.id === exerciseId ? { ...ex, sets: ex.sets.filter(s => s.id !== setId) } : ex
+        ));
+
+        // 3. Definir el callback de "deshacer" (Restaurar la serie)
+        const undoCallback = () => {
+            setSessionExercises(prev => prev.map(ex => {
+                if (ex.id === exerciseId) {
+                    const newSets = [...ex.sets];
+                    // Insertar la serie de vuelta en su posición original
+                    newSets.splice(setIndex, 0, setToRestore);
+                    return { ...ex, sets: newSets };
+                }
+                return ex;
+            }));
         };
-        startUndo('Serie eliminada', callback);
+
+        // 4. Iniciar la barra de "deshacer" con el callback de RESTAURACIÓN
+        startUndo('Serie eliminada', undoCallback);
     };
     
+    // --- LÓGICA MODIFICADA ---
     const handleDeleteExercise = (exerciseId) => {
-        const callback = () => {
-            setSessionExercises(prev => prev.filter(ex => ex.id !== exerciseId));
+        // 1. Encontrar los datos para poder restaurarlos
+        const exerciseToRestore = sessionExercises.find(ex => ex.id === exerciseId);
+        const originalIndex = sessionExercises.findIndex(ex => ex.id === exerciseId);
+
+        if (!exerciseToRestore || originalIndex === -1) return; // No se encontró el ejercicio
+
+        // 2. Ejecutar la acción (Eliminar el ejercicio) INMEDIATAMENTE
+        setSessionExercises(prev => prev.filter(ex => ex.id !== exerciseId));
+
+        // 3. Definir el callback de "deshacer" (Restaurar el ejercicio)
+        const undoCallback = () => {
+            setSessionExercises(prev => {
+                const newList = [...prev];
+                // Insertar el ejercicio de vuelta en su posición original
+                newList.splice(originalIndex, 0, exerciseToRestore);
+                return newList;
+            });
         };
-        startUndo('Ejercicio eliminado', callback);
+
+        // 4. Iniciar la barra de "deshacer" con el callback de RESTAURACIÓN
+        startUndo('Ejercicio eliminado', undoCallback);
     };
     
     return {

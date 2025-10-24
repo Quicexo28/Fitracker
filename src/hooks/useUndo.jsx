@@ -1,54 +1,71 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 /**
- * Un hook personalizado para manejar la lógica de "deshacer" una acción.
- * Permite que una acción se ejecute después de un tiempo, a menos que se "deshaga".
- * @param {number} timeout Duración en milisegundos para deshacer la acción.
+ * Hook (reescrito) para manejar la lógica de "deshacer"
+ * con el patrón de "acción inmediata, restauración al clic".
  */
 export default function useUndo(timeout = 5000) {
-    const [undoState, setUndoState] = useState({ isActive: false, message: '' });
+    
+    // 1. Estado para la UI (visibilidad y mensaje)
+    const [undoState, setUndoState] = useState({ 
+        isActive: false, 
+        message: '' 
+    });
+    
+    // 2. Referencia para el temporizador de desaparición
     const timerRef = useRef(null);
-    const actionCallbackRef = useRef(null); // Ref para almacenar la función a ejecutar
+    
+    // 3. Referencia para guardar la *función de restauración*
+    const restoreCallbackRef = useRef(null);
 
-    // Limpia el temporizador si el componente se desmonta
-    // o si el efecto se re-ejecuta (por ejemplo, si 'timeout' cambia, aunque aquí es constante)
+    // 4. Limpieza al desmontar
     useEffect(() => {
         return () => {
             clearTimeout(timerRef.current);
-            actionCallbackRef.current = null; // También limpiamos el callback al desmontar
         };
-    }, []); // Dependencias vacías para que se ejecute solo al montar y desmontar
+    }, []); 
 
+    /**
+     * Inicia la barra de deshacer.
+     * @param {string} message - El mensaje a mostrar (ej. "Ejercicio eliminado").
+     * @param {function} callback - La función que RESTAURA el estado (la acción de deshacer).
+     */
     const startUndo = useCallback((message, callback) => {
-        // Limpia cualquier acción de deshacer pendiente para evitar conflictos
         clearTimeout(timerRef.current);
-
-        actionCallbackRef.current = callback; // Guarda la función callback
+        restoreCallbackRef.current = callback;
+        
+        // Actualiza el estado de React, lo que provoca una nueva renderización
         setUndoState({ isActive: true, message });
 
-        // Establece el nuevo temporizador para ejecutar la acción
+        // Inicia el temporizador para que la barra desaparezca
         timerRef.current = setTimeout(() => {
-            if (actionCallbackRef.current) {
-                actionCallbackRef.current(); // Ejecuta la función guardada (la eliminación)
-            }
-            setUndoState({ isActive: false, message: '' }); // Resetea el estado
-            actionCallbackRef.current = null; // Limpia la referencia
+            setUndoState({ isActive: false, message: '' });
+            restoreCallbackRef.current = null;
         }, timeout);
-    }, [timeout]); // 'timeout' es una dependencia para el useCallback
 
+    }, [timeout]);
+
+    /**
+     * Se llama cuando el usuario hace clic en el botón "Deshacer".
+     */
     const onUndo = useCallback(() => {
-        // Si el usuario presiona "Deshacer", limpiamos el temporizador y el callback
         clearTimeout(timerRef.current);
         setUndoState({ isActive: false, message: '' });
-        actionCallbackRef.current = null; // Importante limpiar para evitar que se ejecute
-    }, []);
 
+        if (restoreCallbackRef.current) {
+            restoreCallbackRef.current();
+        }
+        
+        restoreCallbackRef.current = null;
+
+    }, []); 
+
+    // --- ESTA ES LA PARTE IMPORTANTE ---
+    // Devuelve el objeto de estado 'undoState' directamente.
+    // NO lo envuelvas en otro objeto.
     return { 
         startUndo, 
         onUndo, 
-        undoState: {
-            isActive: undoState.isActive,
-            message: undoState.message,
-        }
+        undoState 
     };
 }
