@@ -1,138 +1,235 @@
-// src/hooks/useSessionManager.jsx
-import { useState } from 'react';
-import useUndo from './useUndo.jsx';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { collection, doc, getDoc, getDocs, orderBy, query } from 'firebase/firestore';
+import { db } from '../firebase/config.js';
+import { useAuth } from '../context/AuthContext.jsx'; // Importa useAuth
+import { useExercises } from './useExercises.jsx';
 
-export default function useSessionManager(sessionExercises, setSessionExercises) {
+// ... (El resto de tus imports) ...
+const generateSetId = () => `set_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+
+export default function useSessionManager(routineId, existingSession = null, isEditing = false) {
+    const [sessionExercises, setSessionExercises] = useState([]);
+    const [originalRoutineExercises, setOriginalRoutineExercises] = useState([]);
+    const [loading, setLoading] = useState(!isEditing);
+    const [error, setError] = useState(null);
     const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
-    const [isReplacementModalOpen, setIsReplacementModalOpen] = useState(false);
-    const [replacementTarget, setReplacementTarget] = useState(null); // Guarda el ID del ejercicio a reemplazar
-    
-    const { startUndo, onUndo, undoState } = useUndo(5000);
-    
-    const handleAddOrReplaceExercise = (exercise) => { // 'exercise' es el NUEVO ejercicio seleccionado
-        const newExerciseData = {
-            ...exercise,
-            sets: Array.from({ length: exercise.sets || 3 }, (_, i) => ({ id: `${exercise.id}-${i + 1}`, setNumber: i + 1 }))
-        };
+    const [exerciseToReplaceId, setExerciseToReplaceId] = useState(null);
 
-        if (replacementTarget) {
-            setSessionExercises(prev => prev.map(ex => {
-                if (ex.id === replacementTarget) {
-                    return { 
-                        ...newExerciseData,
-                        id: replacementTarget,
-                        exerciseId: exercise.id,
-                        addedAt: ex.addedAt,
-                        supersetId: ex.supersetId,
-                        supersetOrder: ex.supersetOrder
-                    };
-                }
-                return ex;
-            }));
-            setReplacementTarget(null);
-        } else {
-            setSessionExercises(prev => [...prev, { ...newExerciseData, addedAt: { seconds: Date.now() / 1000 } }]);
+    // --- INICIO DE CORRECCIÓN ---
+    const { user } = useAuth(); // Obtén el usuario del contexto
+    // --- FIN DE CORRECCIÓN ---
+
+    const { getExerciseNameById, loading: exercisesLoading, error: exercisesError } = useExercises();
+
+    // useEffect para cargar rutina
+    useEffect(() => {
+        // --- INICIO DE CORRECCIÓN ---
+        // Solo ejecuta si NO estamos editando, hay routineId Y hay usuario logueado
+        if (isEditing || !routineId || !user) {
+            setLoading(false); // Asegura que el loading se detenga si no hay usuario
+            return;
         }
-    };
+        // --- FIN DE CORRECCIÓN ---
 
-    const openReplaceModal = (exerciseId) => {
-        setReplacementTarget(exerciseId);
-        setIsReplacementModalOpen(true);
-    };
+        const fetchRoutine = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                // --- INICIO DE CORRECCIÓN ---
+                // Ahora sabemos que 'user' existe aquí
+                const routineDocRef = doc(db, `users/${user.uid}/routines/${routineId}`);
+                // --- FIN DE CORRECCIÓN ---
+                const routineSnap = await getDoc(routineDocRef);
 
-    const openAddModal = () => {
-        setReplacementTarget(null);
-        setIsAddExerciseModalOpen(true);
-    };
-    
-    const handleShowCustomCreateFromReplacement = () => {
-        setIsReplacementModalOpen(false);
-        setIsAddExerciseModalOpen(true);
-    };
+                if (!routineSnap.exists()) {
+                    throw new Error("Rutina no encontrada.");
+                }
 
-    const handleAddSet = (exerciseId) => {
-        setSessionExercises(prev => prev.map(ex => {
-            if (ex.id === exerciseId) {
-                const newSetNumber = ex.sets.length > 0 ? Math.max(...ex.sets.map(s => s.setNumber)) + 1 : 1;
-                return { ...ex, sets: [...ex.sets, { id: `${ex.id}-${newSetNumber}`, setNumber: newSetNumber }] };
+                const exercisesQuery = query(collection(db, routineDocRef.path, 'exercises'), orderBy('addedAt', 'asc'));
+                const exercisesSnap = await getDocs(exercisesQuery);
+                const fetchedExercises = exercisesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                const exercisesForSession = fetchedExercises.map(ex => ({
+                    exerciseId: ex.id,
+                    exerciseName: ex.baseName || ex.name,
+                    variationName: ex.variationName || '',
+                    isUnilateral: ex.isUnilateral || false,
+                    supersetId: ex.supersetId || null,
+                    supersetOrder: ex.supersetOrder ?? null,
+                    sets: Array.from({ length: ex.sets || 3 }, (_, i) => ({
+                        id: generateSetId(),
+                        setNumber: i + 1,
+                        weight: '',
+                        reps: ex.reps || '',
+                        effort: '',
+                        completed: false,
+                        note: '',
+                        isPR: false,
+                    }))
+                }));
+
+                setOriginalRoutineExercises(fetchedExercises);
+                setSessionExercises(exercisesForSession);
+
+            } catch (err) {
+                console.error("Error cargando rutina:", err);
+                setError(`Error al cargar la rutina: ${err.message}`);
+            } finally {
+                setLoading(false);
             }
-            return ex;
-        }));
-    };
+        };
 
-    // --- LÓGICA MODIFICADA ---
-    const handleRemoveSet = (exerciseId, setId) => {
-        // 1. Encontrar los datos para poder restaurarlos
-        let exerciseToRestore;
-        let setToRestore;
-        let setIndex = -1;
-        
-        exerciseToRestore = sessionExercises.find(ex => ex.id === exerciseId);
-        if (exerciseToRestore) {
-            setToRestore = exerciseToRestore.sets.find(s => s.id === setId);
-            setIndex = exerciseToRestore.sets.findIndex(s => s.id === setId);
+        fetchRoutine();
+
+    // --- INICIO DE CORRECCIÓN ---
+    }, [routineId, isEditing, user]); // Añade 'user' como dependencia
+    // --- FIN DE CORRECCIÓN ---
+
+
+    // useEffect para cargar sesión existente (ya dependía de getExerciseNameById)
+    useEffect(() => {
+        // --- INICIO DE CORRECCIÓN ---
+        // Asegúrate de que 'user' existe antes de procesar
+        if (!user || !isEditing || !existingSession?.exercises) {
+            // Si no hay usuario o sesión, asegúrate de que loading sea false
+            if (isEditing) setLoading(false);
+            return;
         }
+        // --- FIN DE CORRECCIÓN ---
 
-        if (!setToRestore || setIndex === -1) return; // No se encontró la serie
+        const loadedExercises = existingSession.exercises.map(ex => ({
+            exerciseId: ex.exerciseId,
+            exerciseName: getExerciseNameById(ex.exerciseId), // Usa el hook
+            variationName: ex.variationName || '',
+            isUnilateral: ex.isUnilateral || false,
+            supersetId: ex.supersetId || null,
+            supersetOrder: ex.supersetOrder ?? null,
+            sets: ex.sets.map(s => ({
+                id: generateSetId(),
+                setNumber: s.set,
+                weight: s.weight || '',
+                reps: s.reps || '',
+                effort: s.effort || '',
+                completed: s.completed || false,
+                note: s.note || '',
+                isPR: s.isPR || false,
+            }))
+        }));
+        setSessionExercises(loadedExercises);
+        setLoading(false);
 
-        // 2. Ejecutar la acción (Eliminar la serie) INMEDIATAMENTE
-        setSessionExercises(prev => prev.map(ex => 
-            ex.id === exerciseId ? { ...ex, sets: ex.sets.filter(s => s.id !== setId) } : ex
-        ));
+    // --- INICIO DE CORRECCIÓN ---
+    }, [isEditing, existingSession, getExerciseNameById, user]); // Añade 'user'
+    // --- FIN DE CORRECCIÓN ---
 
-        // 3. Definir el callback de "deshacer" (Restaurar la serie)
-        const undoCallback = () => {
-            setSessionExercises(prev => prev.map(ex => {
-                if (ex.id === exerciseId) {
-                    const newSets = [...ex.sets];
-                    // Insertar la serie de vuelta en su posición original
-                    newSets.splice(setIndex, 0, setToRestore);
-                    return { ...ex, sets: newSets };
+
+    // ... (El resto de tus Callbacks: handleAddSet, handleRemoveSet, handleDeleteExercise, etc. no necesitan cambiar aquí) ...
+    const handleAddSet = useCallback((exerciseId) => {
+        setSessionExercises(prevExercises =>
+            prevExercises.map(ex => {
+                if (ex.exerciseId === exerciseId) {
+                    const nextSetNumber = ex.sets.length + 1;
+                    const newSet = {
+                        id: generateSetId(),
+                        setNumber: nextSetNumber,
+                        weight: '', reps: '', effort: '', completed: false, note: '', isPR: false
+                    };
+                    if (ex.sets.length > 0) {
+                        const lastSet = ex.sets[ex.sets.length - 1];
+                        newSet.weight = lastSet.weight;
+                        newSet.reps = lastSet.reps;
+                    }
+                    return { ...ex, sets: [...ex.sets, newSet] };
                 }
                 return ex;
-            }));
+            })
+        );
+    }, []);
+
+    const handleRemoveSet = useCallback((exerciseId, setIdToRemove) => {
+        let removedSetInfo = null;
+        setSessionExercises(prevExercises =>
+            prevExercises.map(ex => {
+                if (ex.exerciseId === exerciseId) {
+                    const setIndexToRemove = ex.sets.findIndex(set => set.id === setIdToRemove);
+                    if (setIndexToRemove === -1) return ex;
+
+                    removedSetInfo = { exerciseId, set: ex.sets[setIndexToRemove], index: setIndexToRemove };
+
+                    const updatedSets = ex.sets.filter(set => set.id !== setIdToRemove)
+                                             .map((set, index) => ({ ...set, setNumber: index + 1 }));
+                    return { ...ex, sets: updatedSets };
+                }
+                return ex;
+            })
+        );
+         return removedSetInfo;
+    }, []);
+
+
+    const handleDeleteExercise = useCallback((exerciseIdToDelete) => {
+        setSessionExercises(prev => prev.filter(ex => ex.exerciseId !== exerciseIdToDelete));
+    }, []);
+
+    const handleAddOrReplaceExercise = useCallback((newExerciseData) => {
+        const exerciseToAdd = {
+            exerciseId: newExerciseData.id,
+            exerciseName: newExerciseData.baseName || newExerciseData.name,
+            variationName: newExerciseData.variationName || '',
+            isUnilateral: newExerciseData.isUnilateral || false,
+            supersetId: null,
+            supersetOrder: null,
+            sets: Array.from({ length: newExerciseData.sets || 3 }, (_, i) => ({
+                 id: generateSetId(),
+                 setNumber: i + 1,
+                 weight: '',
+                 reps: newExerciseData.reps || '',
+                 effort: '',
+                 completed: false,
+                 note: '',
+                 isPR: false
+            }))
         };
 
-        // 4. Iniciar la barra de "deshacer" con el callback de RESTAURACIÓN
-        startUndo('Serie eliminada', undoCallback);
-    };
-    
-    // --- LÓGICA MODIFICADA ---
-    const handleDeleteExercise = (exerciseId) => {
-        // 1. Encontrar los datos para poder restaurarlos
-        const exerciseToRestore = sessionExercises.find(ex => ex.id === exerciseId);
-        const originalIndex = sessionExercises.findIndex(ex => ex.id === exerciseId);
+        if (exerciseToReplaceId) {
+            setSessionExercises(prev => prev.map(ex =>
+                ex.exerciseId === exerciseToReplaceId ? exerciseToAdd : ex
+            ));
+            setExerciseToReplaceId(null);
+        } else {
+            setSessionExercises(prev => [...prev, exerciseToAdd]);
+        }
+        setIsAddExerciseModalOpen(false);
+    }, [exerciseToReplaceId]);
 
-        if (!exerciseToRestore || originalIndex === -1) return; // No se encontró el ejercicio
+    const openReplaceModal = useCallback((exerciseId) => {
+        setExerciseToReplaceId(exerciseId);
+        setIsAddExerciseModalOpen(true);
+    }, []);
 
-        // 2. Ejecutar la acción (Eliminar el ejercicio) INMEDIATAMENTE
-        setSessionExercises(prev => prev.filter(ex => ex.id !== exerciseId));
+    const openAddModal = useCallback(() => {
+        setExerciseToReplaceId(null);
+        setIsAddExerciseModalOpen(true);
+    }, []);
 
-        // 3. Definir el callback de "deshacer" (Restaurar el ejercicio)
-        const undoCallback = () => {
-            setSessionExercises(prev => {
-                const newList = [...prev];
-                // Insertar el ejercicio de vuelta en su posición original
-                newList.splice(originalIndex, 0, exerciseToRestore);
-                return newList;
-            });
-        };
 
-        // 4. Iniciar la barra de "deshacer" con el callback de RESTAURACIÓN
-        startUndo('Ejercicio eliminado', undoCallback);
-    };
-    
+    // Combinar estados de carga y error
+    const finalLoading = loading || exercisesLoading;
+    const finalError = error || exercisesError;
+
     return {
-        isAddExerciseModalOpen, setIsAddExerciseModalOpen,
-        isReplacementModalOpen, setIsReplacementModalOpen,
+        sessionExercises,
+        setSessionExercises,
+        loading: finalLoading,
+        error: finalError,
+        isAddExerciseModalOpen,
+        setIsAddExerciseModalOpen,
         handleAddSet,
         handleRemoveSet,
         handleDeleteExercise,
         handleAddOrReplaceExercise,
         openReplaceModal,
-        openAddModal,
-        handleShowCustomCreateFromReplacement,
-        onUndo,
-        undoState
+        openAddModal
     };
 }

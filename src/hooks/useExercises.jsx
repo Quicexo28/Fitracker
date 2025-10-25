@@ -1,13 +1,11 @@
 // src/hooks/useExercises.jsx
 import { useMemo, useCallback } from 'react';
-import { collection } from 'firebase/firestore';
-import { db } from '../firebase/config';
+// import { collection } from 'firebase/firestore'; // Ya no necesitamos 'collection' aquí
+// import { db } from '../firebase/config';         // Ni 'db' aquí
 import useFirestoreCollection from './useFirestoreCollection.jsx'; // Tu hook existente
 
-// Referencia a la nueva colección de Firestore
-const exercisesCollection = collection(db, 'exercises');
-
 // Helper recursivo para encontrar el nombre de un ejercicio por ID (incluyendo variaciones)
+// (Esta función auxiliar no cambia)
 const findExerciseDetails = (items, id) => {
     if (!items) return null;
     for (const item of items) {
@@ -17,7 +15,7 @@ const findExerciseDetails = (items, id) => {
             for (const variation of item.variations) {
                 if (variation.id === id) return { name: `${item.name}: ${variation.name}`, group: item.groupName };
                 
-                if (variation.subvariations) {
+                if (variation.subvariations) { // Corregido: 'subvariations' en lugar de 'subVariations' si así está en tus datos
                     for (const subVar of variation.subvariations) {
                         if (subVar.id === id) return { name: `${item.name}: ${variation.name} (${subVar.name})`, group: item.groupName };
                         
@@ -35,29 +33,32 @@ const findExerciseDetails = (items, id) => {
 };
 
 export const useExercises = () => {
-    // 1. Usa tu hook existente para obtener los datos de la colección
-    const { data: exercises, loading, error } = useFirestoreCollection(exercisesCollection);
+    // --- INICIO DE LA CORRECCIÓN ---
+    // 1. Pasa el STRING de la ruta de la colección a tu hook
+    const { data: exercises, loading, error } = useFirestoreCollection('exercises'); // <-- ¡AQUÍ ESTÁ EL CAMBIO!
+    // --- FIN DE LA CORRECCIÓN ---
 
-    // 2. Procesa la lista de grupos musculares
+    // 2. Procesa la lista de grupos musculares (sin cambios)
     const allMuscleGroups = useMemo(() => {
         if (!exercises) return [];
         return [...new Set(exercises.map(ex => ex.groupName))].sort();
     }, [exercises]);
 
-    // 3. Crea una función 'getter' optimizada
+    // 3. Crea una función 'getter' optimizada (sin cambios)
     const getExerciseNameById = useCallback((id) => {
-        if (!exercises) return 'Cargando...';
+        if (loading) return 'Cargando...'; // Mejor manejo de carga aquí
+        if (!exercises) return 'Error al cargar';
         
         const details = findExerciseDetails(exercises, id);
         return details ? details.name : 'Ejercicio Desconocido';
         
-    }, [exercises]);
+    }, [exercises, loading]); // Añadir loading a dependencias
 
-    // 4. Retorna los datos procesados y el estado de carga/error
+    // 4. Retorna los datos procesados y el estado de carga/error (sin cambios)
     return {
-        allExercises: exercises || [], // La lista de ejercicios BASE (con variaciones anidadas)
+        allExercises: exercises || [],
         allMuscleGroups,
-        getExerciseNameById, // Función para obtener el nombre completo por ID
+        getExerciseNameById,
         loading,
         error,
     };

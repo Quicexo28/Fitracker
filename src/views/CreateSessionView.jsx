@@ -1,488 +1,501 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useActiveSession } from '../context/ActiveSessionContext.jsx';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { usePreferences } from '../context/PreferencesContext.jsx';
-import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
 import useFirestoreDocument from '../hooks/useFirestoreDocument.jsx';
 import useSessionManager from '../hooks/useSessionManager.jsx';
+import useLastPerformance from '../hooks/useLastPerformance.jsx'; // Hook para última performance
+import usePersonalRecords from '../hooks/usePersonalRecords.jsx'; // Hook para PRs
+import useUndo from '../hooks/useUndo.jsx';
 import { saveWorkoutSession } from '../firebase/sessionService.js';
-import { checkAndGrantAchievements } from '../firebase/achievementsService.js';
-import usePersonalRecords from '../hooks/usePersonalRecords.jsx';
-import useLastPerformance from '../hooks/useLastPerformance.jsx';
-import UndoBar from '../components/UndoBar.jsx';
 import Card from '../components/Card.jsx';
 import ThemedLoader from '../components/ThemedLoader.jsx';
-import ConfirmationModal from '../components/ConfirmationModal.jsx';
-import GenericModal from '../components/GenericModal.jsx';
-import AddExerciseModal from '../components/AddExerciseModal.jsx';
-import ReplacementExerciseList from '../components/ReplacementExerciseList.jsx';
+import AddExerciseToRoutineModal from '../components/AddExerciseToRoutineModal.jsx';
 import RestTimer from '../components/RestTimer.jsx';
-// Asegúrate de que History esté importado, junto con los demás iconos
-import { XCircle, Clock, CheckCircle, PlusCircle, Trash2, MoreVertical, RefreshCw, Loader, MessageSquarePlus, Link as LinkIcon, Award, History } from 'lucide-react';
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
+import UndoBar from '../components/UndoBar.jsx';
+import { ArrowLeft, Loader, PlusCircle, Trash2, MoreVertical, RefreshCw, CheckCircle, Square, XCircle, Info, Award } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid'; // Para IDs únicos de set
 
-// --- Componente SetRow (Modificado) ---
-const SetRow = ({
-    setInfo,
-    exerciseId,
-    isUnilateral,
-    onSetChange,
-    onCompleteSet,
-    initialData,
-    placeholderData, // Datos del último entreno para esta serie
-    preferences,
-    onRemoveSet,
-    isPR,
-    onCopySetData // <-- Prop para copiar esta serie específica
-}) => {
-    const [leftCompleted, setLeftCompleted] = useState(initialData.completedLeft || false);
-    const [rightCompleted, setRightCompleted] = useState(initialData.completedRight || false);
-    const [showNote, setShowNote] = useState(!!initialData.note);
+// --- Componente SetRow ---
+const SetRow = ({ setInfo, exerciseId, onSetChange, onCompleteSet, lastPerformanceSet, prInfo, preferences, onRemoveSet, onAddNote, onTogglePR, isCurrentPR }) => {
+    const [isCompleted, setIsCompleted] = useState(setInfo.completed || false);
+    useEffect(() => { setIsCompleted(setInfo.completed || false); }, [setInfo.completed]);
+
     const rirOptions = [4, 3, 2, 1, 0];
     const rpeOptions = [10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6];
 
-    useEffect(() => {
-        setLeftCompleted(initialData.completedLeft || false);
-        setRightCompleted(initialData.completedRight || false);
-    }, [initialData]);
-
-    const toggleComplete = (side) => {
-        if (side === 'left') {
-            const newStatus = !leftCompleted;
-            setLeftCompleted(newStatus);
-            onCompleteSet(exerciseId, setInfo.setNumber, 'left', newStatus);
-        } else if (side === 'right') {
-            const newStatus = !rightCompleted;
-            setRightCompleted(newStatus);
-            onCompleteSet(exerciseId, setInfo.setNumber, 'right', newStatus);
-        } else {
-            const newStatus = !leftCompleted;
-            setLeftCompleted(newStatus);
-            onCompleteSet(exerciseId, setInfo.setNumber, 'left', newStatus);
-        }
+    const toggleComplete = () => {
+        const newStatus = !isCompleted;
+        setIsCompleted(newStatus);
+        onCompleteSet(exerciseId, setInfo.setNumber, newStatus);
     };
 
-    const isFullyCompleted = isUnilateral ? (leftCompleted && rightCompleted) : leftCompleted;
-
-    const handleCopyClick = () => {
-        if (placeholderData) {
-            onCopySetData(setInfo.setNumber, placeholderData.weight, placeholderData.reps);
+    const handleNoteClick = () => {
+        const note = prompt("Añadir nota para esta serie:", setInfo.note || "");
+        if (note !== null) { // Si el usuario no cancela
+            onAddNote(exerciseId, setInfo.setNumber, note);
         }
     };
 
     return (
-        <div className={`p-3 rounded-lg ${isFullyCompleted ? 'bg-green-100 dark:bg-green-900/40' : 'bg-gray-50 dark:bg-gray-900/30'}`}>
-            {/* --- Vista Móvil --- */}
-            <div className="flex flex-col gap-3 md:hidden">
-                <div className="flex items-center justify-between">
-                    <span className="font-bold text-lg">Serie {setInfo.setNumber}</span>
-                    {/* Botón Copiar Historial (Móvil) */}
-                    {placeholderData && (
-                        <button
-                            onClick={handleCopyClick}
-                            className="p-1 text-blue-500 hover:text-blue-700"
-                            title="Copiar datos anteriores de esta serie"
-                        >
-                            <History size={18} /> {/* <-- Icono Cambiado */}
-                        </button>
-                    )}
-                    <div className="flex items-center gap-2 ml-auto"> {/* Usar ml-auto si es necesario */}
-                        {isPR && <Award className="text-yellow-500 animate-pulse" size={20} />}
-                        <button onClick={() => setShowNote(!showNote)} className="p-1">
-                            <MessageSquarePlus className={initialData.note ? "text-blue-500" : "text-gray-400"} size={20}/>
-                        </button>
-                        <button onClick={() => onRemoveSet(exerciseId, setInfo.id)} className="p-1 text-red-500">
-                            <Trash2 size={18} />
-                        </button>
-                    </div>
-                </div>
-                {/* Inputs Peso, Reps, Esfuerzo (Móvil) */}
-                 <div className="grid grid-cols-3 gap-2">
-                    <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Peso ({preferences?.weightUnit})</label>
-                        <input type="number" name="weight" defaultValue={initialData.weight} placeholder={placeholderData?.weight || '0'} onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'weight', e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center text-lg" />
-                    </div>
-                    <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Reps</label>
-                        <input type="number" name="reps" defaultValue={initialData.reps} placeholder={placeholderData?.reps || '0'} onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'reps', e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center text-lg" />
-                    </div>
-                    <div>
-                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{preferences?.effortMetric || 'RIR'}</label>
-                        <select name="effort" defaultValue={initialData.effort} onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'effort', e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center text-lg">
-                            <option value="">-</option>
-                            {preferences?.effortMetric === 'rir' ? rirOptions.map(opt => <option key={opt} value={opt}>{opt}</option>) : rpeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                    </div>
-                </div>
-                {/* Indicador de datos anteriores (Móvil) */}
-                {placeholderData && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-center gap-1 mt-1">
-                        <History size={12} />
-                        <span>Última vez: {placeholderData.weight || '0'} {preferences?.weightUnit} x {placeholderData.reps || '0'} reps</span>
-                    </div>
-                )}
-                 {/* Botones Completar (Móvil) */}
-                 <div className="flex justify-center gap-2 mt-2">
-                     {isUnilateral ? (
-                        <>
-                            <button onClick={() => toggleComplete('left')} className={`flex-1 py-2 rounded-md font-semibold ${leftCompleted ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-500'}`}>Izquierda</button>
-                            <button onClick={() => toggleComplete('right')} className={`flex-1 py-2 rounded-md font-semibold ${rightCompleted ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-500'}`}>Derecha</button>
-                        </>
-                    ) : (
-                        <button onClick={() => toggleComplete('both')} className={`w-full py-2 rounded-md font-semibold ${leftCompleted ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-500'}`}>Marcar como Completada</button>
-                    )}
-                 </div>
-            </div>
+        <div className={`grid grid-cols-[auto,1fr,1fr,1fr,auto,auto,auto] items-center gap-2 p-2 rounded-lg ${isCompleted ? 'bg-green-100 dark:bg-green-900/30' : ''}`}>
+            {/* Número de Serie */}
+            <span className="font-bold text-center pr-2 relative">
+                {setInfo.setNumber}
+                {isCurrentPR && <Award size={14} className="absolute -top-1 -right-1 text-yellow-500" title="¡Nuevo PR!" />}
+            </span>
 
-            {/* --- Vista Escritorio --- */}
-            {/* Grid con 8 columnas: Serie, Peso, Reps, Esfuerzo, Nota, Copiar, Completar, Borrar */}
-            <div className="hidden md:grid grid-cols-[auto,1fr,1fr,1fr,auto,auto,auto,auto] items-center gap-2">
-                <div className="flex items-center justify-center w-8">
-                    {isPR && <Award className="text-yellow-500 animate-pulse" size={20} />}
-                    <span className="font-bold text-center">{setInfo.setNumber}</span>
-                </div>
-                {/* Input Peso */}
-                <input type="number" name="weight" defaultValue={initialData.weight} placeholder={placeholderData?.weight || '0'} onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'weight', e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center" />
-                {/* Input Reps */}
-                <input type="number" name="reps" defaultValue={initialData.reps} placeholder={placeholderData?.reps || '0'} onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'reps', e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center" />
-                {/* Select Esfuerzo */}
-                <select name="effort" defaultValue={initialData.effort} onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'effort', e.target.value)} className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center">
-                    <option value="">{preferences?.effortMetric?.toUpperCase() || '...'}</option>
-                    {preferences?.effortMetric === 'rir' ? rirOptions.map(opt => <option key={opt} value={opt}>{opt}</option>) : rpeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                </select>
-                {/* Botón Nota */}
-                <button onClick={() => setShowNote(!showNote)} className="flex justify-center p-1"><MessageSquarePlus className={initialData.note ? "text-blue-500" : "text-gray-400"} /></button>
-                {/* Botón Copiar Historial (Escritorio) */}
-                <div className="flex justify-center">
-                    {placeholderData ? (
-                        <button
-                            onClick={handleCopyClick}
-                            className="p-1 text-blue-500 hover:text-blue-700"
-                            title="Copiar datos anteriores de esta serie"
-                        >
-                            <History size={16} /> {/* <-- Icono Cambiado */}
-                        </button>
-                    ) : (
-                        <div className="w-[20px]"></div> // Espaciador para alinear si no hay botón
-                    )}
-                </div>
-                {/* Botones Completar I/D/Both */}
-                <div className="flex justify-center gap-1 font-bold">
-                    {isUnilateral ? (
-                        <>
-                            <button onClick={() => toggleComplete('left')} className={`px-2 py-1 rounded-md text-xs ${leftCompleted ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-500'}`}>I</button>
-                            <button onClick={() => toggleComplete('right')} className={`px-2 py-1 rounded-md text-xs ${rightCompleted ? 'bg-green-500 text-white' : 'bg-gray-300 dark:bg-gray-500'}`}>D</button>
-                        </>
-                    ) : (
-                        <button onClick={() => toggleComplete('both')} className="flex justify-center p-1"><CheckCircle className={leftCompleted ? "text-green-500" : "text-gray-400"}/></button>
-                    )}
-                </div>
-                {/* Botón Borrar Serie */}
-                <button onClick={() => onRemoveSet(exerciseId, setInfo.id)} className="flex justify-center p-1 text-red-500 hover:text-red-400"><Trash2 size={16} /></button>
-            </div>
+            {/* Input Peso */}
+            <input
+                type="number"
+                name="weight"
+                value={setInfo.weight} // Controlado
+                placeholder={lastPerformanceSet?.weight ?? '-'}
+                onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'weight', e.target.value)}
+                className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center"
+            />
 
-            {/* Muestra datos anteriores en escritorio si se usa placeholder */}
-             {placeholderData && !initialData.weight && !initialData.reps && (
-                 <div className="hidden md:flex text-xs text-gray-500 dark:text-gray-400 items-center justify-center gap-2 pt-2 border-t border-gray-200 dark:border-gray-600/50 mt-3">
-                     <History size={12} />
-                     <span>Última vez: {placeholderData.weight || '0'} {preferences?.weightUnit} x {placeholderData.reps || '0'} reps</span>
-                 </div>
-             )}
-            {/* Input de Nota (común) */}
-            {showNote && ( <div className="mt-3"><input type="text" name="note" defaultValue={initialData.note} placeholder="Añadir nota..." onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'note', e.target.value)} className="w-full p-2 text-sm bg-gray-200 dark:bg-gray-600 rounded-md"/></div>)}
+            {/* Input Reps */}
+            <input
+                type="number"
+                name="reps"
+                value={setInfo.reps} // Controlado
+                placeholder={lastPerformanceSet?.reps ?? '-'}
+                onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'reps', e.target.value)}
+                className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center"
+            />
+
+            {/* Select Esfuerzo */}
+            <select
+                name="effort"
+                value={setInfo.effort} // Controlado
+                onChange={(e) => onSetChange(exerciseId, setInfo.setNumber, 'effort', e.target.value)}
+                className="w-full p-2 bg-gray-200 dark:bg-gray-600 rounded-md text-center"
+            >
+                <option value="">{preferences?.effortMetric?.toUpperCase() || 'RIR/RPE'}</option>
+                {preferences?.effortMetric === 'rir' ?
+                    rirOptions.map(opt => <option key={opt} value={opt}>{opt}</option>) :
+                    rpeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+
+            {/* Botón Nota */}
+            <button onClick={handleNoteClick} className="flex justify-center p-1 text-gray-500 hover:text-blue-500 relative">
+                 <Info size={16} />
+                 {setInfo.note && <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-blue-500 ring-2 ring-white dark:ring-gray-700"></span>}
+            </button>
+
+            {/* Botón Completar */}
+            <button onClick={toggleComplete} className="flex justify-center p-1">
+                {isCompleted ? <CheckCircle className="text-green-500"/> : <Square className="text-gray-400"/>}
+            </button>
+
+            {/* Botón Eliminar Serie */}
+            <button onClick={() => onRemoveSet(exerciseId, setInfo.id)} className="flex justify-center p-1 text-red-500 hover:text-red-400">
+                <Trash2 size={16} />
+            </button>
         </div>
     );
 };
 
 
-// --- Componente ExerciseCard (Modificado para quitar botón global y pasar la prop correcta) ---
-const ExerciseCard = ({
-    exercise,
-    preferences,
-    workoutData,
-    onSetChange,
-    onCompleteSet,
-    onAddSet,
-    onRemoveSet,
-    onDeleteExercise,
-    onReplaceExercise,
-    prs,
-    lastPerformanceSets,
-    onCopySingleSet // <-- Prop para la función de copiar serie
-}) => {
+// --- Componente ExerciseCard ---
+const ExerciseCard = ({ exercise, preferences, workoutData, onSetChange, onCompleteSet, onAddSet, onRemoveSet, onDeleteExercise, onReplaceExercise, lastPerformanceSets, prInfo, onAddNote, onTogglePR }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null);
-    useEffect(() => { const handleClickOutside = (event) => { if (menuRef.current && !menuRef.current.contains(event.target)) setIsMenuOpen(false); }; document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, []);
+    useEffect(() => {
+        const handleClickOutside = (event) => { if (menuRef.current && !menuRef.current.contains(event.target)) setIsMenuOpen(false); };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow">
-            <div className="flex justify-between items-start mb-3">
-                {/* Título */}
-                <div>
-                    <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{exercise.baseName || exercise.name}</h3>
-                    {exercise.variationName && <p className="text-sm text-gray-500 dark:text-gray-400 -mt-1">{exercise.variationName}</p>}
-                </div>
-                {/* Menú Más Opciones (...) */}
-                <div className="relative ml-auto" ref={menuRef}> {/* Asegura que el menú esté a la derecha */}
+            {/* Encabezado */}
+            <div className="flex justify-between items-center mb-3">
+                <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100">{exercise.exerciseName}</h3>
+                <div className="relative" ref={menuRef}>
                     <button onClick={() => setIsMenuOpen(prev => !prev)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"><MoreVertical size={20} /></button>
-                    {isMenuOpen && ( <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-10"><div className="py-1"><button onClick={() => { onReplaceExercise(exercise.id); setIsMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><RefreshCw size={16}/> Reemplazar</button><button onClick={() => { onDeleteExercise(exercise.id); setIsMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50"><Trash2 size={16}/> Eliminar</button></div></div>)}
+                    {isMenuOpen && (
+                        <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-10">
+                            <div className="py-1">
+                                <button onClick={() => { onReplaceExercise(exercise.exerciseId); setIsMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"><RefreshCw size={16}/> Reemplazar</button>
+                                <button onClick={() => { onDeleteExercise(exercise.exerciseId); setIsMenuOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50"><Trash2 size={16}/> Eliminar</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
-            {/* Cabecera tabla (escritorio) - Añadida columna para botón Copiar */}
-            <div className="hidden md:grid grid-cols-[auto,1fr,1fr,1fr,auto,auto,auto,auto] gap-2 text-sm font-semibold text-center mb-2 px-2">
-                <span></span><span>Peso ({preferences?.weightUnit?.toUpperCase() || '...'})</span><span>Reps</span><span className="uppercase">{preferences?.effortMetric || '...'}</span><span colSpan={4}></span> {/* Ajustado colspan */}
+
+            {/* Cabecera de Sets */}
+            <div className="grid grid-cols-[auto,1fr,1fr,1fr,auto,auto,auto] gap-2 text-xs font-semibold text-center mb-2 px-1 text-gray-500 dark:text-gray-400">
+                <span>#</span>
+                <span>Peso ({preferences?.weightUnit?.toUpperCase() || 'KG'})</span>
+                <span>Reps</span>
+                <span className="uppercase">{preferences?.effortMetric || 'RIR'}</span>
+                <span>Nota</span>
+                <span></span>{/* Completado */}
+                <span></span>{/* Borrar */}
             </div>
-            {/* Lista de Series */}
+
+            {/* Lista de Sets */}
             <div className="space-y-2">
-                {exercise.sets.map((setInfo, index) => {
-                    const initialDataForSet = workoutData[exercise.id]?.[setInfo.setNumber] || {};
-                    const isPR = prs.has(`${exercise.id}-${setInfo.setNumber}`);
-                    const placeholderData = lastPerformanceSets?.[index];
-                    return (<SetRow
-                                key={setInfo.id}
-                                setInfo={setInfo}
-                                exerciseId={exercise.id}
-                                isUnilateral={exercise.isUnilateral}
-                                onSetChange={onSetChange}
-                                onCompleteSet={onCompleteSet}
-                                initialData={initialDataForSet}
-                                placeholderData={placeholderData}
-                                preferences={preferences}
-                                onRemoveSet={onRemoveSet}
-                                isPR={isPR}
-                                onCopySetData={(setNum, weight, reps) => onCopySingleSet(exercise.id, setNum, weight, reps)} // <-- Pasamos la función con el exerciseId
-                            />);
-                })}
+                {exercise.sets.map((setInfo, index) => (
+                    <SetRow
+                        key={setInfo.id}
+                        setInfo={setInfo}
+                        exerciseId={exercise.exerciseId}
+                        onSetChange={onSetChange}
+                        onCompleteSet={onCompleteSet}
+                        lastPerformanceSet={lastPerformanceSets[index]} // Pasa la última performance para este set
+                        prInfo={prInfo} // Pasa info de PRs
+                        preferences={preferences}
+                        onRemoveSet={onRemoveSet}
+                        onAddNote={onAddNote}
+                        onTogglePR={onTogglePR} // Pasar función para marcar/desmarcar PR
+                        isCurrentPR={setInfo.isPR} // Pasar si el set actual es un PR
+                    />
+                ))}
             </div>
-            {/* Botón Agregar Serie */}
-            <div className="mt-4"><button onClick={() => onAddSet(exercise.id)} className="flex items-center gap-2 text-sm text-blue-500 hover:underline"><PlusCircle size={16} /> Agregar Serie</button></div>
+
+            {/* Botón Añadir Serie */}
+            <div className="mt-4">
+                <button onClick={() => onAddSet(exercise.exerciseId)} className="flex items-center gap-2 text-sm text-blue-500 hover:underline">
+                    <PlusCircle size={16} /> Agregar Serie
+                </button>
+            </div>
         </div>
     );
 };
 
 
-// --- Componente Principal CreateSessionView (Actualizado) ---
-export default function CreateSessionView({ user }) {
+// --- Vista Principal ---
+export default function CreateSessionView() {
     const { routineId } = useParams();
     const navigate = useNavigate();
-    const {
-        sessionExercises, setSessionExercises, activeSession,
-        startSession, endSession, elapsedTime, workoutData, updateWorkoutData,
-        restTimer, timeRemaining, startRestTimer, closeRestTimer
-    } = useActiveSession();
+    const { user } = useAuth(); // Obtener user del contexto
     const { preferences } = usePreferences();
+    const [workoutData, setWorkoutData] = useState({});
     const [isSaving, setIsSaving] = useState(false);
     const [isFinishConfirmationOpen, setIsFinishConfirmationOpen] = useState(false);
-    const [isUncompletedWarningOpen, setIsUncompletedWarningOpen] = useState(false);
-    const { checkIsPR, trackNewPR, resetSessionPRs } = usePersonalRecords();
-    const [prSets, setPrSets] = useState(new Set());
-    const { getLastPerformance, isLoading: lastPerformanceLoading } = useLastPerformance();
+    const [isCancelConfirmationOpen, setIsCancelConfirmationOpen] = useState(false);
+    const [isDeleteExerciseConfirmationOpen, setIsDeleteExerciseConfirmationOpen] = useState(false);
+    const [exerciseIdToDelete, setExerciseIdToDelete] = useState(null);
 
+    // Asegúrate de que routinePath solo se calcule si 'user' existe
     const routinePath = useMemo(() => user ? `users/${user.uid}/routines/${routineId}` : null, [user, routineId]);
-    const { document: routine, loading: routineLoading } = useFirestoreDocument(routinePath);
-    const routineExercisesPath = useMemo(() => user && routineId ? `users/${user.uid}/routines/${routineId}/exercises` : null, [user, routineId]);
-    const { data: routineExercises, loading: exercisesLoading } = useFirestoreCollection(routineExercisesPath, { orderBy: 'addedAt', direction: 'asc' });
 
-    useEffect(() => {
-        if (activeSession && routineExercises.length > 0 && sessionExercises.length === 0) {
-            const initialSets = routineExercises.map(ex => ({
-                ...ex,
-                sets: Array.from({ length: ex.sets || 1 }, (_, i) => ({
-                    id: `${ex.id}-${i + 1}`,
-                    setNumber: i + 1,
-                }))
-            }));
-            setSessionExercises(initialSets);
-        }
-    }, [activeSession, routineExercises, sessionExercises.length, setSessionExercises]);
+    const { document: routineDoc, loading: routineLoading } = useFirestoreDocument(routinePath);
+
+    // --- CORRECCIÓN CLAVE ---
+    // Desestructurar correctamente el resultado de useLastPerformance
+    const { getLastPerformance, isLoading: isLastPerformanceLoading } = useLastPerformance();
+    // --- FIN CORRECCIÓN CLAVE ---
+
+    const { checkIsPR, trackNewPR, resetSessionPRs, isLoading: isPRLoading } = usePersonalRecords();
 
     const {
-        isAddExerciseModalOpen, setIsAddExerciseModalOpen,
-        isReplacementModalOpen, setIsReplacementModalOpen,
+        sessionExercises,
+        setSessionExercises,
+        loading: managerLoading,
+        error: managerError,
+        isAddExerciseModalOpen,
+        setIsAddExerciseModalOpen,
+        handleAddSet,
+        handleRemoveSet: removeSetFromState,
+        handleDeleteExercise: deleteExerciseFromState,
         handleAddOrReplaceExercise,
         openReplaceModal,
-        openAddModal,
-        handleShowCustomCreateFromReplacement,
-        handleAddSet,
-        handleRemoveSet,
-        handleDeleteExercise,
-        onUndo,
-        undoState,
-    } = useSessionManager(sessionExercises, setSessionExercises);
+        openAddModal
+    } = useSessionManager(routineId);
 
-    const groupedSessionExercises = useMemo(() => {
-        if (!sessionExercises) return [];
-        const groups = {};
-        const singleExercises = [];
-        sessionExercises.forEach(ex => {
-            if (ex.supersetId) {
-                if (!groups[ex.supersetId]) groups[ex.supersetId] = [];
-                groups[ex.supersetId].push(ex);
-            } else {
-                singleExercises.push([ex]);
-            }
-        });
-        Object.values(groups).forEach(group => group.sort((a, b) => a.supersetOrder - b.supersetOrder));
-        return [...Object.values(groups), ...singleExercises].sort((a, b) => (a[0].addedAt?.seconds || a[0].addedAt || 0) - (b[0].addedAt?.seconds || b[0].addedAt || 0));
-    }, [sessionExercises]);
+    const { isActive: showUndo, startUndo, undo } = useUndo();
 
+    // useEffect para inicializar workoutData
     useEffect(() => {
-        if (routine) {
-            startSession(routineId, routine.name);
-            resetSessionPRs();
-        }
-    }, [routine, routineId, startSession, resetSessionPRs]);
-
-    // --- Función para copiar UNA SOLA serie ---
-    const handleCopySingleSetData = useCallback((exerciseId, setNumber, weight, reps) => {
-        // Actualiza el estado global 'workoutData' con los valores copiados para esa serie
-        updateWorkoutData(exerciseId, setNumber, 'weight', weight ?? '');
-        updateWorkoutData(exerciseId, setNumber, 'reps', reps ?? '');
-        // Forzar re-renderizado o usar inputs controlados si la UI no se actualiza
-    }, [updateWorkoutData]);
-
-    const handleSetChange = (exerciseId, setNumber, field, value) => {
-        updateWorkoutData(exerciseId, setNumber, field, value);
-        if (field === 'weight' || field === 'reps') {
-            const currentSetData = workoutData[exerciseId]?.[setNumber] || {};
-            const weight = field === 'weight' ? value : currentSetData.weight;
-            const reps = field === 'reps' ? value : currentSetData.reps;
-            const isPR = checkIsPR(exerciseId, reps, weight);
-            if (isPR) {
-                trackNewPR(exerciseId, reps, weight);
-                setPrSets(prev => new Set(prev).add(`${exerciseId}-${setNumber}`));
-            } else {
-                setPrSets(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(`${exerciseId}-${setNumber}`);
-                    return newSet;
+        if (!managerLoading && sessionExercises.length > 0) {
+            const initialData = {};
+            sessionExercises.forEach(ex => {
+                initialData[ex.exerciseId] = {};
+                ex.sets.forEach(set => {
+                    // Solo inicializa si no existe ya para no sobrescribir datos introducidos
+                    if (!workoutData[ex.exerciseId]?.[set.setNumber]) {
+                         initialData[ex.exerciseId][set.setNumber] = { ...set, completed: false, note: '', isPR: false };
+                    } else {
+                         initialData[ex.exerciseId][set.setNumber] = workoutData[ex.exerciseId][set.setNumber];
+                    }
                 });
+            });
+            // Solo actualiza si hay cambios para evitar bucles infinitos
+            if (JSON.stringify(initialData) !== JSON.stringify(workoutData)) {
+                 setWorkoutData(initialData);
+            }
+            // Resetea los PRs de sesión al iniciar (solo si resetSessionPRs es una función)
+            if (typeof resetSessionPRs === 'function') {
+                resetSessionPRs();
             }
         }
-    };
+    }, [sessionExercises, managerLoading, resetSessionPRs, workoutData]);
 
-    const handleCompleteSet = (exerciseId, setNumber, side, newStatus) => {
-        const fieldToUpdate = side === 'right' ? 'completedRight' : 'completedLeft';
-        updateWorkoutData(exerciseId, setNumber, fieldToUpdate, newStatus);
 
-        const exercise = sessionExercises.find(ex => ex.id === exerciseId);
-        if (!exercise || !newStatus) return;
+    // Callbacks para SetRow y ExerciseCard
+    const handleSetChange = useCallback((exerciseId, setNumber, field, value) => {
+        setWorkoutData(prevData => {
+            const currentSetData = prevData[exerciseId]?.[setNumber] || { id: uuidv4(), setNumber };
+            const newData = {
+                ...prevData,
+                [exerciseId]: {
+                    ...prevData[exerciseId],
+                    [setNumber]: {
+                        ...currentSetData,
+                        [field]: value
+                    }
+                }
+            };
 
-        const currentSetState = workoutData[exerciseId]?.[setNumber] || {};
-        const isLeftDone = fieldToUpdate === 'completedLeft' ? newStatus : (currentSetState.completedLeft || false);
-        const isRightDone = fieldToUpdate === 'completedRight' ? newStatus : (currentSetState.completedRight || false);
+            // Comprobar si es un nuevo PR al cambiar peso o reps
+            if ((field === 'weight' || field === 'reps')) {
+                 const updatedSetData = newData[exerciseId][setNumber];
+                 const weight = parseFloat(updatedSetData.weight);
+                 const reps = parseInt(updatedSetData.reps, 10);
 
-        const isSetFullyCompleted = exercise.isUnilateral ? (isLeftDone && isRightDone) : isLeftDone;
+                 // Verifica si checkIsPR es una función antes de llamarla
+                 const isNewPR = typeof checkIsPR === 'function' ? checkIsPR(exerciseId, reps, weight) : false;
 
-        if (exercise.isUnilateral && ((isLeftDone && !isRightDone) || (!isLeftDone && isRightDone))) {
-            const sideRestMinutes = parseInt(exercise.restBetweenSidesMinutes, 10) || 0;
-            const sideRestSeconds = parseInt(exercise.restBetweenSidesSeconds, 10) || 15;
-            const sideRestDuration = (sideRestMinutes * 60) + sideRestSeconds;
-            startRestTimer(sideRestDuration, "Cambia de lado", "Prepara el otro lado");
+                 if (isNewPR) {
+                     newData[exerciseId][setNumber].isPR = true;
+                      // Verifica si trackNewPR es una función antes de llamarla
+                      if (typeof trackNewPR === 'function') trackNewPR(exerciseId, reps, weight);
+                 } else {
+                     newData[exerciseId][setNumber].isPR = false;
+                 }
+            }
+            return newData;
+        });
+    }, [checkIsPR, trackNewPR]); // Asegúrate de que las dependencias sean correctas
+
+    const handleCompleteSet = useCallback((exerciseId, setNumber, isCompleted) => {
+        setWorkoutData(prevData => {
+            const currentSetData = prevData[exerciseId]?.[setNumber] || { id: uuidv4(), setNumber };
+            return {
+                ...prevData,
+                [exerciseId]: {
+                    ...prevData[exerciseId],
+                    [setNumber]: { ...currentSetData, completed: isCompleted }
+                }
+            };
+        });
+    }, []);
+
+    const handleAddNote = useCallback((exerciseId, setNumber, note) => {
+         setWorkoutData(prevData => {
+             const currentSetData = prevData[exerciseId]?.[setNumber] || { id: uuidv4(), setNumber };
+             return {
+                ...prevData,
+                [exerciseId]: { ...prevData[exerciseId], [setNumber]: { ...currentSetData, note: note } }
+             };
+         });
+    }, []);
+
+    const handleTogglePR = useCallback((exerciseId, setNumber) => {
+         setWorkoutData(prevData => {
+             const currentSet = prevData[exerciseId]?.[setNumber];
+             if (!currentSet) return prevData;
+             return {
+                ...prevData,
+                [exerciseId]: {
+                    ...prevData[exerciseId],
+                    [setNumber]: { ...currentSet, isPR: !currentSet.isPR }
+                }
+             };
+         });
+    }, []);
+
+    const handleRemoveSet = useCallback((exerciseId, setIdToRemove) => {
+        const removedSetInfo = removeSetFromState(exerciseId, setIdToRemove);
+        if (removedSetInfo) {
+            setWorkoutData(prevData => {
+                const exerciseSets = { ...prevData[exerciseId] };
+                delete exerciseSets[removedSetInfo.set.setNumber]; // Elimina por número de set
+                return { ...prevData, [exerciseId]: exerciseSets };
+            });
+            startUndo(removedSetInfo); // Inicia el contador para deshacer
+        }
+    }, [removeSetFromState, startUndo]);
+
+    const handleUndoRemoveSet = useCallback(() => {
+        const restoredInfo = undo(); // Obtiene la info del set restaurado
+        if (!restoredInfo) return;
+
+        // Vuelve a añadir el set a sessionExercises
+        setSessionExercises(prevExercises =>
+            prevExercises.map(ex => {
+                if (ex.exerciseId === restoredInfo.exerciseId) {
+                    const newSets = [...ex.sets];
+                    newSets.splice(restoredInfo.index, 0, restoredInfo.set); // Inserta en la posición original
+                    // Renumera los sets en sessionExercises
+                    const renumberedSets = newSets.map((set, index) => ({ ...set, setNumber: index + 1 }));
+                    return { ...ex, sets: renumberedSets };
+                }
+                return ex;
+            })
+        );
+
+        // Restaura los datos en workoutData (si existían)
+        setWorkoutData(prevData => ({
+             ...prevData,
+             [restoredInfo.exerciseId]: {
+                 ...prevData[restoredInfo.exerciseId],
+                 [restoredInfo.set.setNumber]: { ...restoredInfo.set } // Usa el número de set original
+             }
+         }));
+
+    }, [undo, setSessionExercises]);
+
+
+    const handleDeleteExercise = useCallback((exerciseId) => {
+        setExerciseIdToDelete(exerciseId);
+        setIsDeleteExerciseConfirmationOpen(true);
+    }, []);
+
+    const confirmDeleteExercise = useCallback(() => {
+        deleteExerciseFromState(exerciseIdToDelete); // Llama al manager
+        // Limpia datos de workoutData para el ejercicio eliminado
+        setWorkoutData(prevData => {
+            const newData = { ...prevData };
+            delete newData[exerciseIdToDelete];
+            return newData;
+        });
+        setIsDeleteExerciseConfirmationOpen(false);
+        setExerciseIdToDelete(null);
+    }, [exerciseIdToDelete, deleteExerciseFromState]);
+
+
+    // Finalizar/Cancelar (con guardia para 'user')
+    const handleFinishWorkout = useCallback(async () => {
+        // Guardia: Asegura que el usuario esté cargado
+        if (!user) {
+            console.error("Intento de guardar sesión sin usuario autenticado.");
+            alert("Error: Debes estar conectado para guardar la sesión.");
             return;
         }
 
-        if (isSetFullyCompleted) {
-            const group = groupedSessionExercises.find(g => g.some(e => e.id === exerciseId));
-            const isLastInSuperset = group && group.length > 1 && group[group.length - 1].id === exerciseId;
-            const isSingleExercise = !group || group.length === 1;
-
-            if (isSingleExercise || isLastInSuperset) {
-                const nextGroupIndex = groupedSessionExercises.findIndex(g => g.some(e => e.id === exerciseId)) + 1;
-                const nextGroup = groupedSessionExercises[nextGroupIndex];
-                const nextExerciseName = nextGroup ? (nextGroup[0].baseName || nextGroup[0].name) : 'Entrenamiento Finalizado';
-                const duration = (parseInt(exercise.restMinutes, 10) || 0) * 60 + (parseInt(exercise.restSeconds, 10) || 0);
-                startRestTimer(duration, nextExerciseName);
-            }
-        }
-    };
-
-    const handleFinishClick = () => {
-        let allSetsCompleted = true;
-        for (const exercise of sessionExercises) {
-            for (const set of exercise.sets) {
-                const setData = workoutData[exercise.id]?.[set.setNumber];
-                const isSetCompleted = exercise.isUnilateral
-                    ? setData?.completedLeft && setData?.completedRight
-                    : setData?.completedLeft;
-                if (!isSetCompleted) {
-                    allSetsCompleted = false; break;
-                }
-            }
-            if (!allSetsCompleted) break;
-        }
-        if (allSetsCompleted) setIsFinishConfirmationOpen(true);
-        else setIsUncompletedWarningOpen(true);
-    };
-
-    const handleFinishWorkout = useCallback(async () => {
         setIsFinishConfirmationOpen(false);
-        setIsUncompletedWarningOpen(false);
         setIsSaving(true);
         try {
-            await saveWorkoutSession(user.uid, routineId, workoutData, sessionExercises, prSets);
-            await checkAndGrantAchievements(user.uid);
-            endSession();
-            navigate('/historial');
+             const exercisesToSave = sessionExercises.map(ex => ({
+                 exerciseId: ex.exerciseId,
+                 exerciseName: ex.exerciseName,
+                 variationName: ex.variationName,
+                 isUnilateral: ex.isUnilateral,
+                 supersetId: ex.supersetId,
+                 supersetOrder: ex.supersetOrder,
+                 sets: ex.sets
+                     .map(setInfo => workoutData[ex.exerciseId]?.[setInfo.setNumber]) // Obtiene los datos ingresados
+                     .filter(setData => setData && (setData.weight || setData.reps || setData.effort || setData.completed || setData.note)) // Filtra sets vacíos no completados
+                     .map(setData => ({ // Mapea al formato de guardado
+                         set: setData.setNumber,
+                         weight: parseFloat(setData.weight) || 0,
+                         reps: parseInt(setData.reps, 10) || 0,
+                         effort: setData.effort || '',
+                         completed: setData.completed || false,
+                         note: setData.note || '',
+                         isPR: setData.isPR || false,
+                     }))
+             })).filter(ex => ex.sets.length > 0); // Filtra ejercicios sin sets válidos
+
+
+            if (exercisesToSave.length === 0) {
+                 alert("No has registrado ningún dato en esta sesión.");
+                 setIsSaving(false);
+                 return;
+            }
+
+            // Ahora sabemos que 'user.uid' existe
+            const sessionId = await saveWorkoutSession(user.uid, routineId, routineDoc?.name || 'Entrenamiento', exercisesToSave);
+            navigate(`/historial/${sessionId}`); // Redirige al detalle de la sesión guardada
+
         } catch (error) {
-            console.error("Error detallado capturado en la vista:", error);
-            alert(`¡ERROR DETALLADO!\n\nOcurrió un problema al guardar la sesión...\n\nNombre: ${error.name}\nMensaje: ${error.message}\nCódigo: ${error.code}\n\nStack: \n${error.stack}`);
-        } finally {
-            setIsSaving(false);
+            console.error("Error al guardar sesión:", error);
+            alert("Hubo un error al guardar la sesión.");
+            setIsSaving(false); // Solo aquí si hay error
         }
-    }, [user.uid, routineId, workoutData, sessionExercises, prSets, endSession, navigate]);
+        // No ponemos setIsSaving(false) aquí si navegamos
+    }, [sessionExercises, workoutData, user, routineId, routineDoc?.name, navigate]); // Asegúrate que 'user' esté en las dependencias
 
-    const handleCancelWorkout = () => { endSession(); navigate(`/rutina/${routineId}`); };
-    const formatTime = (seconds) => { const h = Math.floor(seconds / 3600).toString().padStart(2, '0'); const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0'); const s = Math.floor(seconds % 60).toString().padStart(2, '0'); return `${h}:${m}:${s}`; };
+    const handleCancelWorkout = () => {
+        setIsCancelConfirmationOpen(false);
+        navigate('/rutinas'); // O a donde quieras redirigir al cancelar
+    };
 
-    if (routineLoading || exercisesLoading || lastPerformanceLoading) return <ThemedLoader />;
 
+    // Estados combinados de carga y error
+    const isLoading = routineLoading || managerLoading || isLastPerformanceLoading || isPRLoading;
+    const hasError = managerError;
+
+    // Guardia: Si el usuario no está cargado aún (y no hay otro loading activo), muestra loader
+    if (!user && !isLoading) { return <ThemedLoader />; }
+    if (isLoading) return <ThemedLoader />;
+    if (hasError) return <Card><p className="text-red-500">{hasError}</p></Card>;
+
+    // --- RENDERIZADO ---
     return (
         <div className="relative min-h-screen pb-16">
-            <AddExerciseModal isOpen={isAddExerciseModalOpen} onClose={() => setIsAddExerciseModalOpen(false)} user={user} onExerciseCreated={handleAddOrReplaceExercise}/>
-            <GenericModal isOpen={isReplacementModalOpen} onClose={() => setIsReplacementModalOpen(false)} title="Reemplazar Ejercicio"><ReplacementExerciseList user={user} onSelect={(exercise) => { handleAddOrReplaceExercise(exercise); setIsReplacementModalOpen(false); }} onShowCustomCreate={handleShowCustomCreateFromReplacement}/></GenericModal>
-            <ConfirmationModal isOpen={isFinishConfirmationOpen} onClose={() => setIsFinishConfirmationOpen(false)} title="¿Finalizar entrenamiento?" message="Una vez finalizado, se guardará en tu historial. ¿Estás seguro?" onConfirm={handleFinishWorkout} />
-            <ConfirmationModal isOpen={isUncompletedWarningOpen} onClose={() => setIsUncompletedWarningOpen(false)} title="¡Atención!" message="Tienes series sin marcar como completadas. ¿Deseas finalizar el entrenamiento de todas formas?" onConfirm={handleFinishWorkout} />
+            {/* Modales */}
+             <AddExerciseToRoutineModal isOpen={isAddExerciseModalOpen} onClose={() => setIsAddExerciseModalOpen(false)} user={user} onAddExercise={handleAddOrReplaceExercise} />
+             <ConfirmationModal isOpen={isFinishConfirmationOpen} onClose={() => setIsFinishConfirmationOpen(false)} title="Finalizar Entrenamiento" message="¿Estás seguro de que quieres finalizar y guardar esta sesión?" onConfirm={handleFinishWorkout} />
+             <ConfirmationModal isOpen={isCancelConfirmationOpen} onClose={() => setIsCancelConfirmationOpen(false)} title="Cancelar Entrenamiento" message="¿Estás seguro de que quieres cancelar? El progreso no guardado se perderá." onConfirm={handleCancelWorkout} confirmText="Sí, Cancelar" cancelText="No, Continuar" />
+             <ConfirmationModal isOpen={isDeleteExerciseConfirmationOpen} onClose={() => setIsDeleteExerciseConfirmationOpen(false)} title="Eliminar Ejercicio" message="¿Estás seguro de que quieres eliminar este ejercicio de la sesión actual?" onConfirm={confirmDeleteExercise} />
 
             <Card>
-                <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                {/* Encabezado */}
+                <div className="flex justify-between items-start mb-6">
                     <div>
-                        <button onClick={handleCancelWorkout} className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 mb-2"><XCircle size={16}/> Cancelar</button>
-                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{routine?.name || 'Entrenamiento'}</h2>
-                        <div className="flex items-center gap-2 mt-2 text-lg text-blue-500 font-semibold"><Clock size={20}/><span>{formatTime(elapsedTime)}</span></div>
+                         <button onClick={() => setIsCancelConfirmationOpen(true)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 mb-2"> <XCircle size={16}/> Cancelar Sesión </button>
+                        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{routineDoc?.name || 'Entrenamiento'}</h2>
                     </div>
-                    <button onClick={handleFinishClick} disabled={isSaving} className="flex items-center gap-2 px-5 py-3 text-white font-semibold rounded-lg shadow bg-red-600 hover:bg-red-500 disabled:bg-opacity-50 disabled:cursor-not-allowed">
-                        {isSaving ? <Loader className="animate-spin" size={20} /> : "Finalizar"}
-                    </button>
+                    <button onClick={() => setIsFinishConfirmationOpen(true)} disabled={isSaving} className="flex items-center gap-2 px-4 py-2 text-white font-semibold rounded-lg shadow bg-green-600 hover:bg-green-500 disabled:bg-opacity-50 disabled:cursor-not-allowed" > {isSaving ? <Loader className="animate-spin" size={20} /> : "Finalizar"} </button>
                 </div>
+                {/* Rest Timer */}
+                <RestTimer />
+                {/* Lista de Ejercicios */}
                 <div className="space-y-6">
-                    {groupedSessionExercises.length > 0 ? groupedSessionExercises.map((group) => (
-                        <div key={group[0].supersetId || group[0].id} className={`space-y-4 ${group.length > 1 ? 'p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-500/30' : ''}`}>
-                             {group.length > 1 && <h4 className="font-bold text-blue-800 dark:text-blue-300 flex items-center gap-2"><LinkIcon size={16}/>Super-serie</h4>}
-                             {group.map(ex => {
-                                const lastPerformanceSets = getLastPerformance(ex.id);
-                                return (<ExerciseCard
-                                            key={ex.id}
-                                            exercise={ex}
-                                            preferences={preferences}
-                                            workoutData={workoutData}
-                                            onSetChange={handleSetChange}
-                                            onCompleteSet={handleCompleteSet}
-                                            onAddSet={handleAddSet}
-                                            onRemoveSet={handleRemoveSet}
-                                            onDeleteExercise={handleDeleteExercise}
-                                            onReplaceExercise={openReplaceModal}
-                                            prs={prSets}
-                                            lastPerformanceSets={lastPerformanceSets}
-                                            onCopySingleSet={handleCopySingleSetData} // <-- Pasamos la función actualizada
-                                        />);
-                             })}
-                        </div>
-                    )) : <p className="text-center text-gray-500 py-8">Cargando ejercicios o esta rutina está vacía.</p>}
+                     {sessionExercises.length > 0 ? (
+                        sessionExercises.map((ex) => {
+                            // --- CORRECCIÓN CLAVE ---
+                            // Verifica que getLastPerformance sea una función antes de llamarla
+                            const lastPerfSets = typeof getLastPerformance === 'function'
+                                ? getLastPerformance(ex.exerciseId)
+                                : []; // Si no es función, devuelve array vacío como fallback
+                            // --- FIN CORRECCIÓN CLAVE ---
+                            return (
+                                <ExerciseCard
+                                    key={ex.exerciseId}
+                                    exercise={ex}
+                                    preferences={preferences}
+                                    workoutData={workoutData[ex.exerciseId] || {}}
+                                    onSetChange={handleSetChange}
+                                    onCompleteSet={handleCompleteSet}
+                                    onAddSet={handleAddSet}
+                                    onRemoveSet={handleRemoveSet}
+                                    onDeleteExercise={handleDeleteExercise}
+                                    onReplaceExercise={openReplaceModal}
+                                    lastPerformanceSets={lastPerfSets} // Pasa el resultado (o fallback)
+                                    prInfo={{ checkIsPR, trackNewPR }}
+                                    onAddNote={handleAddNote}
+                                    onTogglePR={handleTogglePR}
+                                />
+                            );
+                        })
+                    ) : (
+                        <p className="text-center text-gray-500 py-8">No hay ejercicios en esta sesión. ¡Añade uno!</p>
+                    )}
                 </div>
-                <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4"><button onClick={openAddModal} className="w-full flex items-center justify-center gap-2 py-2 text-blue-500 hover:underline"><PlusCircle size={18} /> Agregar Ejercicio sobre la marcha</button></div>
+                {/* Botón Añadir Ejercicio */}
+                 <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4"> <button onClick={openAddModal} className="w-full flex items-center justify-center gap-2 py-2 text-blue-500 hover:underline" > <PlusCircle size={18} /> Agregar Ejercicio a la Sesión </button> </div>
             </Card>
-            <UndoBar isActive={undoState.isActive} onUndo={onUndo} message={undoState.message}/>
-            <RestTimer />
+            {/* Barra de Deshacer */}
+            <UndoBar isVisible={showUndo} onUndo={handleUndoRemoveSet} message="Serie eliminada." />
         </div>
     );
 }

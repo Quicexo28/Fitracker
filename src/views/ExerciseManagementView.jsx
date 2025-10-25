@@ -2,92 +2,77 @@ import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase/config.js';
-// import { exerciseDatabase } from '../exercises.js'; // <-- CAMBIO: Eliminado
-import { useExercises } from '../hooks/useExercises.jsx'; // <-- CAMBIO: Importar hook
+import { useExercises } from '../hooks/useExercises.jsx'; // Importa el hook corregido
 import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
 import Card from '../components/Card.jsx';
 import AddExerciseModal from '../components/AddExerciseModal.jsx';
 import ThemedLoader from '../components/ThemedLoader.jsx';
 import { PlusCircle, Search, Trash2, BarChart2, ChevronDown, SlidersHorizontal } from 'lucide-react';
 
-const normalizeText = (text = '') => 
+// Función auxiliar para normalizar texto para búsquedas
+const normalizeText = (text = '') =>
     text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 export default function ExerciseManagementView({ user }) {
-    // ... (tus estados no cambian) ...
+    // Estados del componente (sin cambios)
     const [searchTerm, setSearchTerm] = useState('');
     const [muscleGroupFilter, setMuscleGroupFilter] = useState('all');
     const [sourceFilter, setSourceFilter] = useState('all');
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [expandedId, setExpandedId] = useState(null);
 
+    // Hooks para obtener datos (sin cambios)
     const exercisesPath = useMemo(() => user ? `users/${user.uid}/exercises` : null, [user]);
     const { data: customExercises, loading: customLoading } = useFirestoreCollection(exercisesPath, { orderBy: 'name', direction: 'asc' });
-    
-    // --- INICIO DE CAMBIOS ---
     const { allExercises: defaultExercises, allMuscleGroups, loading: defaultLoading } = useExercises();
+
+    // Estado de carga combinado
     const combinedLoading = customLoading || defaultLoading;
-    
-    // CAMBIO: Usar allMuscleGroups del hook
     const muscleGroups = useMemo(() => allMuscleGroups, [allMuscleGroups]);
-    // --- FIN DE CAMBIOS ---
 
+    // Lógica para filtrar y aplanar la lista de ejercicios (CONSOLIDADA Y LIMPIA)
     const filteredExercises = useMemo(() => {
-        // CAMBIO: Usar defaultExercises (del hook) en lugar de exerciseDatabase
+        // --- LÓGICA DE APLANADO ---
         const flatDefaultExercises = defaultExercises.flatMap(item => {
-            // Esta lógica anidada es para expandir todas las variaciones,
-            // subvariaciones y tipos de ejecución en una lista plana.
-            const base = {
-                id: item.id,
-                name: item.name,
-                group: item.groupName, // CAMBIO: group a groupName
-                isCustom: false,
-                imageUrl: item.imageUrl
+            const exercisesList = [];
+            // Función auxiliar recursiva para aplanar
+            const flatten = (currentItem, namePrefix = '', baseGroup) => {
+                const currentName = namePrefix ? `${namePrefix} (${currentItem.name})` : currentItem.name;
+
+                // Añade el nivel actual si no tiene más subniveles O si es un tipo de ejecución final
+                 if (!currentItem.variations && !currentItem.subvariations && !currentItem.executionTypes) {
+                     exercisesList.push({
+                        ...currentItem,
+                        name: currentName,
+                        group: baseGroup || currentItem.groupName, // Usa el grupo base
+                        isCustom: false,
+                     });
+                 } else if (currentItem.executionTypes) { // Si tiene tipos de ejecución, estos son los finales
+                     currentItem.executionTypes.forEach(et => {
+                         exercisesList.push({
+                             ...et,
+                             name: `${namePrefix} (${et.name})`, // Usa el prefijo de la subvariación
+                             group: baseGroup,
+                             isCustom: false,
+                         });
+                     });
+                 } else { // Si no es un tipo de ejecución y tiene subniveles, procesamos subniveles
+                     if (currentItem.subvariations) {
+                        currentItem.subvariations.forEach(sv => flatten(sv, currentName, baseGroup));
+                     }
+                     else if (currentItem.variations) {
+                         currentItem.variations.forEach(v => flatten(v, currentItem.name, currentItem.groupName)); // Pasa el nombre base y grupo
+                     }
+                 }
             };
-
-            if (!item.variations || item.variations.length === 0) {
-                return [base];
-            }
-
-            return item.variations.flatMap(variation => {
-                const variationBase = {
-                    ...variation,
-                    name: `${item.name}: ${variation.name}`,
-                    group: item.groupName,
-                    isCustom: false,
-                };
-
-                if (!variation.subvariations || variation.subvariations.length === 0) {
-                    return [variationBase];
-                }
-
-                return variation.subvariations.flatMap(subVar => {
-                    const subVariationBase = {
-                        ...subVar,
-                        name: `${item.name}: ${variation.name} (${subVar.name})`,
-                        group: item.groupName,
-                        isCustom: false,
-                    };
-
-                    if (!subVar.executionTypes || subVar.executionTypes.length === 0) {
-                        return [subVariationBase];
-                    }
-
-                    return subVar.executionTypes.map(execType => ({
-                        ...execType,
-                        name: `${item.name}: ${subVar.name} (${execType.name})`,
-                        group: item.groupName,
-                        isCustom: false,
-                    }));
-                });
-            });
+            flatten(item);
+            return exercisesList;
         });
 
-        const formattedCustomExercises = customExercises.map(ex => ({ ...ex, isCustom: true, variationName: '(Personalizado)' }));
-        
+        const formattedCustomExercises = customExercises.map(ex => ({ ...ex, isCustom: true, variationName: '(Personalizado)', group: ex.group }));
+
         let all = [...flatDefaultExercises, ...formattedCustomExercises].sort((a, b) => normalizeText(a.name).localeCompare(normalizeText(b.name)));
-        
-        // ... (Tu lógica de filtrado no cambia) ...
+
+        // --- LÓGICA DE FILTRADO ---
         if (sourceFilter !== 'all') {
             all = all.filter(ex => sourceFilter === 'custom' ? ex.isCustom : !ex.isCustom);
         }
@@ -100,9 +85,9 @@ export default function ExerciseManagementView({ user }) {
         }
 
         return all;
-    }, [searchTerm, muscleGroupFilter, sourceFilter, customExercises, defaultExercises]); // CAMBIO: Añadir defaultExercises
+    }, [searchTerm, muscleGroupFilter, sourceFilter, customExercises, defaultExercises]);
 
-    // ... (Tu función deleteCustomExercise no cambia) ...
+    // Función para eliminar ejercicios personalizados (sin cambios)
     const deleteCustomExercise = async (exerciseId) => {
         if (window.confirm("¿Seguro que quieres eliminar este ejercicio personalizado? Esta acción es permanente.")) {
             try {
@@ -114,11 +99,13 @@ export default function ExerciseManagementView({ user }) {
         }
     };
 
+    // --- RENDERIZADO DEL COMPONENTE ---
     return (
         <>
+            {/* Modal para añadir ejercicio (sin cambios) */}
             <AddExerciseModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} user={user} />
             <Card>
-                {/* ... (Tu JSX de encabezado y filtros no cambia) ... */}
+                {/* --- SECCIÓN DE ENCABEZADO Y FILTROS --- (sin cambios) */}
                 <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
                     <h2 className="text-3xl font-bold">Biblioteca de Ejercicios</h2>
                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg">
@@ -161,32 +148,35 @@ export default function ExerciseManagementView({ user }) {
                         </select>
                     </div>
                 </div>
-                
+
                 {/* --- LISTA DE EJERCICIOS --- */}
                 <div className="h-[55vh] overflow-y-auto pr-2">
-                    {/* CAMBIO: Usar combinedLoading */}
-                    {combinedLoading ? <ThemedLoader /> : (
+                    {combinedLoading ? <ThemedLoader /> : ( // Manejo de carga
                         <ul className="space-y-2">
-                            {filteredExercises.map((exercise) => (
-                                <li key={exercise.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg">
-                                    <div className="flex items-center justify-between p-3">
-                                        <div>
-                                            <span className="font-medium">{exercise.name}</span>
-                                            {exercise.isCustom && <span className="ml-2 text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Personalizado</span>}
+                            {filteredExercises.length > 0 ? ( // Verifica si hay ejercicios para mostrar
+                                filteredExercises.map((exercise) => (
+                                    <li key={exercise.id} className="bg-gray-100 dark:bg-gray-700 rounded-lg">
+                                        <div className="flex items-center justify-between p-3">
+                                            <div>
+                                                <span className="font-medium">{exercise.name}</span>
+                                                {exercise.isCustom && <span className="ml-2 text-xs font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Personalizado</span>}
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Link to={`/ejercicios/${exercise.id}`} className="p-2 text-gray-500 hover:text-blue-500">
+                                                    <BarChart2 size={18} />
+                                                </Link>
+                                                {exercise.isCustom && (
+                                                    <button onClick={() => deleteCustomExercise(exercise.id)} className="p-2 text-gray-500 hover:text-red-500">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <Link to={`/ejercicios/${exercise.id}`} className="p-2 text-gray-500 hover:text-blue-500">
-                                                <BarChart2 size={18} />
-                                            </Link>
-                                            {exercise.isCustom && (
-                                                <button onClick={() => deleteCustomExercise(exercise.id)} className="p-2 text-gray-500 hover:text-red-500">
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </li>
-                            ))}
+                                    </li>
+                                ))
+                            ) : ( // Mensaje si no hay ejercicios después de filtrar
+                                <p className="text-center text-gray-500 py-8">No se encontraron ejercicios con los filtros actuales.</p>
+                            )}
                         </ul>
                     )}
                 </div>
