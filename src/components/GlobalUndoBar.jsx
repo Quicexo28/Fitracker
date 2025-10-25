@@ -1,17 +1,17 @@
+// src/components/GlobalUndoBar.jsx
 import React from 'react';
-import { useGlobalUndoStatus } from '../context/UndoContext.jsx'; // Hook para el estado global
-import UndoBar from './UndoBar.jsx'; // Componente presentacional
+import { useGlobalUndoStatus } from '../context/UndoContext.jsx';
+import UndoBar from './UndoBar.jsx'; // El componente presentacional
 
 export default function GlobalUndoBar() {
-    // Obtiene el estado y la función del contexto global
     const { isVisible, message, executeUndo } = useGlobalUndoStatus();
 
-    // Pasa los datos al componente presentacional
+    // Pasa todo al componente presentacional
     return (
         <UndoBar
             isVisible={isVisible}
             message={message}
-            onUndo={executeUndo}
+            onUndo={executeUndo} // Pasa la función executeUndo del contexto
         />
     );
 }
