@@ -8,7 +8,6 @@ export default function useFirestoreCollection(_collection, _queryOptions = {}) 
     const [error, setError] = useState(null);
 
     // Memoizamos las opciones para evitar re-crear la consulta innecesariamente
-    // Usamos una dependencia estable si _queryOptions está vacío
     const queryOptionsString = _queryOptions && Object.keys(_queryOptions).length > 0 ? JSON.stringify(_queryOptions) : '{}';
 
     useEffect(() => {
@@ -43,17 +42,6 @@ export default function useFirestoreCollection(_collection, _queryOptions = {}) 
             }
 
             unsubscribe = onSnapshot(q, (snapshot) => {
-                // --- INICIO DE DEBUG DETALLADO ---
-                console.log(`[useFirestoreCollection] Snapshot recibido para "${_collection}"`);
-                console.log(`[useFirestoreCollection] ¿Snapshot vacío? ${snapshot.empty}`);
-                console.log(`[useFirestoreCollection] Número de documentos: ${snapshot.size}`); // O snapshot.docs.length
-
-                if (snapshot.size > 0) {
-                     // Loguea los primeros 1-2 documentos para ver su estructura
-                     console.log("[useFirestoreCollection] Primeros documentos recibidos:", snapshot.docs.slice(0, 2).map(d => ({ id: d.id, ...d.data() })));
-                }
-                // --- FIN DE DEBUG DETALLADO ---
-
                 const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
                 setData(docs);
                 setLoading(false);
@@ -69,6 +57,7 @@ export default function useFirestoreCollection(_collection, _queryOptions = {}) 
             setLoading(false);
         }
 
+        // Limpiar el listener al desmontar
         return () => unsubscribe();
 
     }, [_collection, queryOptionsString]); // Dependencias: la colección y las opciones
