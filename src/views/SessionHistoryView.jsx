@@ -1,97 +1,117 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
-import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
-import { deleteWorkoutSession } from '../firebase/sessionService.js';
-import Card from '../components/Card.jsx';
-import ThemedLoader from '../components/ThemedLoader.jsx';
-import ConfirmationModal from '../components/ConfirmationModal.jsx';
-import UndoBar from '../components/UndoBar.jsx';
-import useUndo from '../hooks/useUndo.jsx';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { ArrowLeft, Trash2, CalendarDays, Clock, CheckCircle } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import { useSessions } from "../context/SessionContext.jsx";
+import { deleteWorkoutSession } from "../firebase/sessionService.js"; // Necesitarás una función para restaurar si quieres undo real
+import Card from "../components/Card.jsx";
+import ThemedLoader from "../components/ThemedLoader.jsx";
+import ConfirmationModal from "../components/ConfirmationModal.jsx";
+import { useUndoContext } from "../context/UndoContext.jsx"; // <-- 2. IMPORTA el hook del contexto
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { Trash2, Edit, CalendarDays } from "lucide-react";
+
+// Función para formatear fechas
+const formatDate = (timestamp) => {
+    if (!timestamp?.seconds) return "Fecha inválida";
+    return format(new Date(timestamp.seconds * 1000), "EEEE, d 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es });
+};
 
 export default function SessionHistoryView() {
     const { user } = useAuth();
-    const navigate = useNavigate();
-    const [sessionIdToDelete, setSessionIdToDelete] = useState(null);
-    const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
-    const { startUndo, onUndo, undoState } = useUndo(5000);
+    const { sessions, loading: sessionsLoading, refetchSessions } = useSessions(); // Asumiendo que useSessions provee refetch
+    const [sessionToDelete, setSessionToDelete] = useState(null);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-    // --- CORRECCIÓN APLICADA: Unificamos el nombre a "sessions" ---
-    const sessionsPath = useMemo(() => user ? `users/${user.uid}/sessions` : null, [user]);
-    const { data: sessions, loading, error } = useFirestoreCollection(sessionsPath, {
-        orderBy: 'completedAt', // Corregido para usar el campo de timestamp
-        direction: 'desc'
-    });
+    // --- 3. USA el hook del contexto ---
+    const { showUndoBar } = useUndoContext();
 
-    const handleDeleteSessionClick = (sessionId) => {
-        setSessionIdToDelete(sessionId);
-        setIsConfirmationModalOpen(true);
+    const openConfirmationModal = (session) => {
+        setSessionToDelete(session);
+        setIsConfirmModalOpen(true);
     };
 
-    const confirmAndDeleteSession = useCallback(() => {
-        setIsConfirmationModalOpen(false);
-        if (sessionIdToDelete) {
-            const currentSessionId = sessionIdToDelete;
-            // El borrado se hace en segundo plano, la UI se actualiza por el listener
-            const deletionCallback = async () => {
-                await deleteWorkoutSession(user.uid, currentSessionId);
-            };
-            startUndo('Sesión eliminada', deletionCallback);
-            setSessionIdToDelete(null);
-        }
-    }, [sessionIdToDelete, user.uid, startUndo]);
+    // --- 4. MODIFICA handleDeleteSession ---
+    const handleDeleteSession = useCallback(async () => {
+        if (!sessionToDelete || !user) return;
 
-    if (loading) return <ThemedLoader />;
-    if (error) return <p className="text-red-500 text-center mt-8">Error: {error.message}</p>;
+        const sessionToDeleteId = sessionToDelete.id;
+        const sessionToDeleteData = { ...sessionToDelete }; // Guarda los datos por si se deshace
+
+        setIsConfirmModalOpen(false); // Cierra el modal de confirmación
+
+        try {
+            await deleteWorkoutSession(user.uid, sessionToDeleteId);
+            const restoreAction = async () => {
+                console.warn("La función para restaurar sesión eliminada aún no está implementada.");
+                alert("Restaurar sesión eliminada aún no implementado.");
+            };
+
+            // Muestra la barra de deshacer usando el contexto
+            showUndoBar("Sesión eliminada.", restoreAction);
+
+            // Refresca la lista después de mostrar el undo (o después de que el timeout termine si quieres)
+             if (refetchSessions) refetchSessions(); // Llama a refetch si existe
+
+        } catch (error) {
+            console.error("Error al eliminar la sesión:", error);
+            alert("Hubo un error al eliminar la sesión.");
+        } finally {
+            setSessionToDelete(null); // Limpia el estado
+        }
+    }, [sessionToDelete, user, showUndoBar, refetchSessions]); // Añade dependencias
+
+
+    const sortedSessions = useMemo(() => {
+        // Ordena las sesiones de más reciente a más antigua
+        return [...sessions].sort((a, b) => (b.completedAt?.seconds || 0) - (a.completedAt?.seconds || 0));
+    }, [sessions]);
+
+
+    if (sessionsLoading) return <ThemedLoader />;
 
     return (
-        <div className="relative min-h-screen pb-16">
-            <Card>
-                <div className="flex items-center justify-between mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Historial de Sesiones</h1>
-                </div>
+        <>
+            <ConfirmationModal
+                isOpen={isConfirmModalOpen}
+                onClose={() => setIsConfirmModalOpen(false)}
+                title="Confirmar Eliminación"
+                message={`¿Estás seguro de que quieres eliminar la sesión "${sessionToDelete?.routineName || 'seleccionada'}" del ${formatDate(sessionToDelete?.completedAt)}? Esta acción no se puede deshacer directamente.`}
+                onConfirm={handleDeleteSession} // Llama a la función modificada
+                confirmText="Sí, Eliminar"
+                cancelText="Cancelar"
+            />
 
-                {sessions.length === 0 ? (
-                    <p className="text-center text-gray-500 dark:text-gray-400 py-8">Aún no tienes sesiones registradas.</p>
+            <Card>
+                <h2 className="text-3xl font-bold mb-6 text-center">Historial de Sesiones</h2>
+
+                {sortedSessions.length === 0 ? (
+                    <p className="text-center text-gray-500 py-8">Aún no has completado ninguna sesión.</p>
                 ) : (
-                    <div className="space-y-4">
-                        {sessions.map(session => (
-                            <div key={session.id} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center relative">
-                                <div className="flex-1 mb-2 sm:mb-0 cursor-pointer" onClick={() => navigate(`/historial/${session.id}`)}>
-                                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{session.routineName || 'Sesión sin nombre'}</h2>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1 mt-1">
-                                        <CalendarDays size={16} /> {session.completedAt ? format(session.completedAt.toDate(), 'PPPp', { locale: es }) : 'Fecha desconocida'}
-                                    </p>
+                    <ul className="space-y-4">
+                        {sortedSessions.map((session) => (
+                            <li key={session.id} className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                                    <Link to={`/historial/${session.id}`} className="flex-grow mb-2 sm:mb-0">
+                                        <h3 className="font-semibold text-lg text-blue-600 dark:text-blue-400 hover:underline">{session.routineName || 'Entrenamiento'}</h3>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                            <CalendarDays size={14} /> {formatDate(session.completedAt)}
+                                        </p>
+                                    </Link>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                        <Link to={`/historial/${session.id}/editar`} className="p-2 text-gray-500 hover:text-blue-500 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/50" title="Editar Sesión">
+                                            <Edit size={18} />
+                                        </Link>
+                                        <button onClick={() => openConfirmationModal(session)} className="p-2 text-gray-500 hover:text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50" title="Eliminar Sesión">
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
                                 </div>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleDeleteSessionClick(session.id); }}
-                                    className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-2 rounded-full absolute top-2 right-2 sm:static"
-                                    aria-label={`Eliminar sesión ${session.routineName}`}
-                                >
-                                    <Trash2 size={20} />
-                                </button>
-                            </div>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 )}
             </Card>
-
-            <ConfirmationModal
-                isOpen={isConfirmationModalOpen}
-                onClose={() => setIsConfirmationModalOpen(false)}
-                onConfirm={confirmAndDeleteSession}
-                title="Confirmar Eliminación"
-                message="¿Estás seguro de que quieres eliminar esta sesión?"
-            />
-
-            <UndoBar
-                isActive={undoState.isActive}
-                onUndo={onUndo}
-                message={undoState.message}
-            />
-        </div>
+        </>
     );
 }
