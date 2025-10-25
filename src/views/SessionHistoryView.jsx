@@ -6,7 +6,7 @@ import { deleteWorkoutSession } from "../firebase/sessionService.js"; // Necesit
 import Card from "../components/Card.jsx";
 import ThemedLoader from "../components/ThemedLoader.jsx";
 import ConfirmationModal from "../components/ConfirmationModal.jsx";
-import { useUndoContext } from "../context/UndoContext.jsx"; // <-- 2. IMPORTA el hook del contexto
+//import { useUndoContext } from "../context/UndoContext.jsx"; // <-- 2. IMPORTA el hook del contexto
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Trash2, Edit, CalendarDays } from "lucide-react";
@@ -24,7 +24,7 @@ export default function SessionHistoryView() {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
     // --- 3. USA el hook del contexto ---
-    const { showUndoBar } = useUndoContext();
+    //const { showUndoBar } = useUndoContext();
 
     const openConfirmationModal = (session) => {
         setSessionToDelete(session);
@@ -48,7 +48,7 @@ export default function SessionHistoryView() {
             };
 
             // Muestra la barra de deshacer usando el contexto
-            showUndoBar("Sesión eliminada.", restoreAction);
+            //showUndoBar("Sesión eliminada.", restoreAction);
 
             // Refresca la lista después de mostrar el undo (o después de que el timeout termine si quieres)
              if (refetchSessions) refetchSessions(); // Llama a refetch si existe
@@ -59,7 +59,7 @@ export default function SessionHistoryView() {
         } finally {
             setSessionToDelete(null); // Limpia el estado
         }
-    }, [sessionToDelete, user, showUndoBar, refetchSessions]); // Añade dependencias
+    }, [sessionToDelete, user, /*showUndoBar,*/ refetchSessions]); // Añade dependencias
 
 
     const sortedSessions = useMemo(() => {

@@ -8,8 +8,8 @@ import { PreferencesProvider } from './context/PreferencesContext.jsx';
 import SessionProvider from './context/SessionContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { ActiveSessionProvider } from './context/ActiveSessionContext.jsx';
-import { UndoProvider } from './context/UndoContext.jsx'; // <-- IMPORTADO
-import GlobalUndoBar from './components/GlobalUndoBar.jsx'; // <-- IMPORTADO
+//import { UndoProvider } from './context/UndoContext.jsx';
+//import GlobalUndoBar from './components/GlobalUndoBar.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -19,10 +19,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <PreferencesProvider>
             <SessionProvider>
               <ActiveSessionProvider>
-                <UndoProvider> {/* <-- ENVUELVE */}
+                {/* REMOVIDO: <UndoProvider> */}
                   <App />
-                  <GlobalUndoBar /> {/* <-- RENDERIZA LA BARRA GLOBAL */}
-                </UndoProvider>
+                  {/* REMOVIDO: <GlobalUndoBar /> */}
+                {/* REMOVIDO: </UndoProvider> */}
               </ActiveSessionProvider>
             </SessionProvider>
           </PreferencesProvider>

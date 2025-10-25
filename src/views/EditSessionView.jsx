@@ -5,7 +5,7 @@ import { usePreferences } from '../context/PreferencesContext.jsx';
 import { useSessions } from '../context/SessionContext.jsx';
 import { updateWorkoutSession } from '../firebase/sessionService.js';
 import useSessionManager from '../hooks/useSessionManager.jsx';
-import useUndo from '../hooks/useUndo.jsx';
+//import useUndo from '../hooks/useUndo.jsx';
 import Card from '../components/Card.jsx';
 import ThemedLoader from '../components/ThemedLoader.jsx';
 import AddExerciseToRoutineModal from '../components/AddExerciseToRoutineModal.jsx';
@@ -101,7 +101,7 @@ export default function EditSessionView({ user }) {
         openAddModal
     } = useSessionManager(null, existingSession, true);
     
-    const { isActive: showUndo, startUndo, undo } = useUndo();
+    //const { isActive: showUndo, startUndo, undo } = useUndo();
 
     useEffect(() => {
         if (existingSession?.exercises) {
@@ -127,11 +127,11 @@ export default function EditSessionView({ user }) {
     const handleRemoveSet = (exerciseId, setIdToRemove) => {
         const deletedInfo = removeSetFromState(exerciseId, setIdToRemove);
         if (deletedInfo) {
-            startUndo(deletedInfo);
+            //startUndo(deletedInfo);
         }
     };
     
-    const handleUndoRemoveSet = () => {
+    /*const handleUndoRemoveSet = () => {
         const restoredInfo = undo();
         if (!restoredInfo) return;
         setSessionExercises(p => p.map(ex => {
@@ -142,7 +142,7 @@ export default function EditSessionView({ user }) {
             }
             return ex;
         }));
-    };
+    };*/
     
     const handleDeleteExercise = (exerciseId) => {
         setExerciseIdToDelete(exerciseId);
@@ -206,7 +206,7 @@ export default function EditSessionView({ user }) {
                 </div>
                  <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4"><button onClick={openAddModal} className="w-full flex items-center justify-center gap-2 py-2 text-blue-500 hover:underline"><PlusCircle size={18} /> Agregar Ejercicio a la Sesión</button></div>
             </Card>
-            {showUndo && (<div className="fixed bottom-4 left-1/2 -translate-x-1/2"><div className="flex items-center justify-between gap-4 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg"><span>Serie eliminada.</span><button onClick={handleUndoRemoveSet} className="font-bold text-blue-400 hover:text-blue-300">Deshacer</button></div></div>)}
+            {/*showUndo && (<div className="fixed bottom-4 left-1/2 -translate-x-1/2"><div className="flex items-center justify-between gap-4 bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg"><span>Serie eliminada.</span><button onClick={handleUndoRemoveSet} className="font-bold text-blue-400 hover:text-blue-300">Deshacer</button></div></div>)*/}
         </div>
     );
 }

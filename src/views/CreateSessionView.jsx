@@ -6,7 +6,7 @@ import useFirestoreDocument from '../hooks/useFirestoreDocument.jsx';
 import useSessionManager from '../hooks/useSessionManager.jsx';
 import useLastPerformance from '../hooks/useLastPerformance.jsx';
 import usePersonalRecords from '../hooks/usePersonalRecords.jsx';
-import { useUndoContext } from '../context/UndoContext.jsx';
+//import { useUndoContext } from '../context/UndoContext.jsx';
 import { saveWorkoutSession } from '../firebase/sessionService.js';
 import Card from '../components/Card.jsx';
 import ThemedLoader from '../components/ThemedLoader.jsx';
@@ -240,7 +240,7 @@ export default function CreateSessionView() {
     const { document: routineDoc, loading: routineLoading } = useFirestoreDocument(routinePath);
     const { getLastPerformance, isLoading: isLastPerformanceLoading } = useLastPerformance();
     const { checkIsPR, trackNewPR, resetSessionPRs, isLoading: isPRLoading } = usePersonalRecords();
-    const { showUndoBar } = useUndoContext();
+    //const { showUndoBar } = useUndoContext();
 
     const {
         sessionExercises, setSessionExercises, loading: managerLoading, error: managerError,
@@ -381,9 +381,9 @@ export default function CreateSessionView() {
                 );
                 setWorkoutData(workoutDataBeforeDelete);
             };
-            showUndoBar("Serie eliminada.", restoreAction);
+            //showUndoBar("Serie eliminada.", restoreAction);
         }
-    }, [removeSetFromSessionExercises, showUndoBar, setSessionExercises, workoutData]);
+    }, /*removeSetFromSessionExercises, showUndoBar, setSessionExercises, workoutData*/);
 
 
     const handleDeleteExercise = useCallback((exerciseId) => {
@@ -401,9 +401,9 @@ export default function CreateSessionView() {
             setSessionExercises(exercisesBeforeDelete);
             setWorkoutData(workoutDataBeforeDelete);
         };
-        showUndoBar("Ejercicio eliminado.", restoreExerciseAction);
+        //showUndoBar("Ejercicio eliminado.", restoreExerciseAction);
         setExerciseIdToDelete(null);
-    }, [exerciseIdToDelete, deleteExerciseFromSessionExercises, showUndoBar, setSessionExercises, sessionExercises, workoutData]);
+    }, [exerciseIdToDelete, deleteExerciseFromSessionExercises, /*showUndoBar*/, setSessionExercises, sessionExercises, workoutData]);
 
 
     // Finalizar/Cancelar
