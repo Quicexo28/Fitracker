@@ -1,41 +1,84 @@
-import React, { createContext, useContext, useMemo } from 'react';
-import useFirestoreCollection from '../hooks/useFirestoreCollection.jsx';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'; // <--- ADD useMemo HERE
+import { collection, query, /* where, */ orderBy, onSnapshot, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 const SessionContext = createContext();
 
-export const useSessions = () => {
+export function useSessions() {
     return useContext(SessionContext);
-};
+}
 
-// LA CORRECCIÓN: Usamos "export default" para que App.jsx pueda encontrarlo.
+// El Provider ahora necesita recibir el objeto `user` como prop
 export default function SessionProvider({ children, user }) {
-    const sessionsPath = useMemo(() => user ? `users/${user.uid}/sessions` : null, [user]);
-    const { data: sessions, loading: sessionsLoading } = useFirestoreCollection(sessionsPath, {
-        orderBy: 'completedAt',
-        direction: 'desc'
-    });
+    const [sessions, setSessions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const routinesPath = useMemo(() => user ? `users/${user.uid}/routines` : null, [user]);
-    const { data: routines, loading: routinesLoading } = useFirestoreCollection(routinesPath);
+    // Función para recargar manualmente
+    const refetchSessions = useCallback(async () => {
+        if (!user) {
+            setSessions([]);
+            setLoading(false);
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+            const q = query(sessionsRef, orderBy('completedAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const fetchedSessions = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setSessions(fetchedSessions);
+        } catch (err) {
+            console.error("Error fetching sessions manually:", err);
+            setError(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
 
-    const routinesMap = useMemo(() => {
-        if (!routines) return new Map();
-        return new Map(routines.map(routine => [routine.id, routine.name]));
-    }, [routines]);
 
-    const enrichedSessions = useMemo(() => {
-        return sessions.map(session => ({
-            ...session,
-            routineName: routinesMap.get(session.routineId) || 'Rutina Eliminada'
-        }));
-    }, [sessions, routinesMap]);
+    useEffect(() => {
+        if (!user) {
+            setSessions([]);
+            setLoading(false);
+            setError(null);
+            return;
+        }
 
-    const isLoading = sessionsLoading || routinesLoading;
+        setLoading(true);
+        setError(null);
 
-    const value = {
-        sessions: enrichedSessions,
-        loading: isLoading
-    };
+        const sessionsRef = collection(db, `users/${user.uid}/sessions`);
+        const q = query(sessionsRef, orderBy('completedAt', 'desc'));
+
+        // Suscripción en tiempo real
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const fetchedSessions = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setSessions(fetchedSessions);
+            setLoading(false);
+            setError(null);
+        }, (err) => {
+            console.error("Error listening to session changes:", err);
+            setError(err);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+
+    }, [user]);
+
+    // El valor que provee el contexto, envuelto en useMemo
+    const value = useMemo(() => ({
+        sessions,
+        loading,
+        error,
+        refetchSessions,
+        setSessions // Exponer setSessions
+    }), [sessions, loading, error, refetchSessions]); // Incluir refetchSessions si puede cambiar
 
     return (
         <SessionContext.Provider value={value}>

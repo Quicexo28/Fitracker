@@ -1,25 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast'; // Importar react-hot-toast
 import { RotateCcw } from 'lucide-react'; // Icono para el botón
+import { restoreDeletedSession } from '../firebase/sessionService';
 
 // Importa tu función de restauración de Firebase (asegúrate de que exista y funcione)
 // Debes crear esta función en sessionService.js si aún no existe.
 // import { restoreDeletedSession } from '../firebase/sessionService';
-
-// --- Placeholder para restoreDeletedSession si aún no la has creado ---
-// --- ¡RECUERDA REEMPLAZAR ESTO CON TU IMPLEMENTACIÓN REAL! ---
-const restoreDeletedSession = async (userId, sessionId, sessionData) => {
-    console.warn("restoreDeletedSession no implementado. Simulando restauración...");
-    await new Promise(resolve => setTimeout(resolve, 500)); // Simula delay
-    console.log("Simulación: Sesión restaurada (Firestore):", userId, sessionId, sessionData);
-    // Aquí iría la lógica real con setDoc
-    // import { doc, setDoc } from 'firebase/firestore';
-    // import { db } from './config'; // Asegúrate de importar db
-    // const sessionDocRef = doc(db, `users/${userId}/sessions`, sessionId);
-    // await setDoc(sessionDocRef, sessionData);
-};
-// --- Fin del Placeholder ---
-
 
 // Tipos de acción (exportados para usar en componentes)
 export const UndoActionTypes = {
@@ -128,16 +114,15 @@ const actionRestorers = {
          }
     },
     [UndoActionTypes.DELETE_SESSION]: async (payload) => {
-        const { sessionId, sessionData, user, refetchSessions } = payload;
+        const { sessionId, sessionData, user } = payload;
         if (!user || !sessionId || !sessionData) {
-             console.error("Undo Error: Faltan datos en el payload para DELETE_SESSION.");
+             console.error("Undo Error: Faltan datos en el payload para DELETE_SESSION.");  
              toast.error('Error interno al deshacer (datos).');
              return;
         }
         try {
             await restoreDeletedSession(user.uid, sessionId, sessionData); // Llama a la función de Firebase
             toast.success('Sesión restaurada.');
-            if (refetchSessions) refetchSessions(); // Refresca la lista
         } catch (error) {
             console.error("Error al restaurar sesión en Firestore:", error);
             toast.error("No se pudo deshacer la eliminación.");
