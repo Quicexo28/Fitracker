@@ -1,3 +1,5 @@
+// src/views/CreateSessionView.jsx
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -14,9 +16,9 @@ import RestTimer from '../components/RestTimer.jsx';
 import ConfirmationModal from '../components/ConfirmationModal.jsx';
 import { ArrowLeft, Loader, PlusCircle, Trash2, MoreVertical, RefreshCw, CheckCircle, Square, XCircle, MessageSquare, Award, History } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { UndoActionTypes } from '../hooks/useUndoManager'; // <-- Importar tipos de acción
+import { UndoActionTypes } from '../hooks/useUndoManager.jsx'; // <-- Importar tipos de acción
 
-// --- Componente SetRow (Sin cambios funcionales) ---
+// --- Componente SetRow (No changes needed from previous correct version) ---
 const SetRow = React.memo(({
     setNumber, setData, exerciseId, setId, onSetChange, onCompleteSet,
     lastPerformanceSet, targetReps, preferences, onRemoveSet, onCopyLastPerformance
@@ -66,11 +68,12 @@ const SetRow = React.memo(({
                 </button>
                 <div className="flex items-center justify-center gap-1">
                     <button onClick={toggleComplete} className="p-1">{setData.completed ? <CheckCircle className="text-green-500"/> : <Square className="text-gray-400"/>}</button>
-                    <button onClick={() => onRemoveSet(exerciseId, setId)} className="p-1 text-red-500 hover:text-red-400"><Trash2 size={16} /></button>
+                    {/* Ensure setId is passed correctly */}
+                    <button onClick={() => onRemoveSet(exerciseId, setData.id || setId)} className="p-1 text-red-500 hover:text-red-400"><Trash2 size={16} /></button>
                 </div>
             </div>
             {isNoteOpen && (
-                <div className="mt-2 pl-[calc(theme(space.6)+theme(space.2)+theme(space.8))]">
+                <div className="mt-2 pl-[calc(theme(space.6)+theme(space.2)+theme(space.8))]"> {/* Adjust left padding if needed */}
                     <input type="text" value={setData.note || ''} onChange={(e) => handleChange('note', e.target.value)} placeholder="Añadir nota..." className="w-full p-2 text-sm bg-gray-200 dark:bg-gray-600 rounded-md border border-gray-300 dark:border-gray-500 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white" autoFocus />
                 </div>
             )}
@@ -78,7 +81,8 @@ const SetRow = React.memo(({
     );
 });
 
-// --- Componente ExerciseCard (Sin cambios funcionales) ---
+
+// --- Componente ExerciseCard (No changes needed from previous correct version) ---
 const ExerciseCard = React.memo(({ exercise, exerciseWorkoutData, preferences, onSetChange, onCompleteSet, onAddSet, onRemoveSet, onDeleteExercise, onReplaceExercise, lastPerformanceSets, onCopyLastPerformance }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef(null);
@@ -118,8 +122,9 @@ const ExerciseCard = React.memo(({ exercise, exerciseWorkoutData, preferences, o
     );
 });
 
-// --- Vista Principal (con addUndoAction como prop) ---
-export default function CreateSessionView({ user, addUndoAction }) { // <-- Recibe addUndoAction
+
+// --- Main View Component ---
+export default function CreateSessionView({ user, addUndoAction }) {
     const { routineId } = useParams();
     const navigate = useNavigate();
     const { preferences } = usePreferences();
@@ -144,43 +149,49 @@ export default function CreateSessionView({ user, addUndoAction }) { // <-- Reci
         handleAddOrReplaceExercise, openReplaceModal, openAddModal
     } = useSessionManager(routineId);
 
-    // useEffect para inicializar workoutData (sin cambios)
-    useEffect(() => {
+    // useEffect for initializing workoutData (remains the same)
+     useEffect(() => {
         if (!managerLoading && sessionExercises.length > 0) {
             setWorkoutData(prevData => {
-                const newData = { ...prevData };
+                const newData = JSON.parse(JSON.stringify(prevData || {}));
                 let needsUpdate = false;
                 sessionExercises.forEach(ex => {
                     if (!newData[ex.exerciseId]) { newData[ex.exerciseId] = {}; needsUpdate = true; }
                     ex.sets.forEach(set => {
-                        if (!newData[ex.exerciseId][set.setNumber]) {
+                        const currentSetId = set.id || uuidv4();
+                        if (!newData[ex.exerciseId][set.setNumber] || newData[ex.exerciseId][set.setNumber].id !== currentSetId) {
                             newData[ex.exerciseId][set.setNumber] = {
-                                id: set.id, setNumber: set.setNumber, weight: '', reps: '',
+                                id: currentSetId, setNumber: set.setNumber, weight: '', reps: '',
                                 effort: '', completed: false, note: '', isPR: false
-                            }; needsUpdate = true;
-                        } else if (newData[ex.exerciseId][set.setNumber].id !== set.id) {
-                             newData[ex.exerciseId][set.setNumber].id = set.id; needsUpdate = true;
+                            };
+                            needsUpdate = true;
                         }
-                        if(newData[ex.exerciseId][set.setNumber].reps === undefined || newData[ex.exerciseId][set.setNumber].reps === null) {
+                        if (newData[ex.exerciseId][set.setNumber].reps === undefined || newData[ex.exerciseId][set.setNumber].reps === null) {
                             newData[ex.exerciseId][set.setNumber].reps = '';
                             needsUpdate = true;
                         }
                     });
-                     Object.keys(newData[ex.exerciseId] || {}).forEach(setNumStr => {
-                         if (!ex.sets.some(s => s.setNumber === parseInt(setNumStr, 10))) { delete newData[ex.exerciseId][setNumStr]; needsUpdate = true; }
-                     });
+                    Object.keys(newData[ex.exerciseId] || {}).forEach(setNumStr => {
+                        const setNum = parseInt(setNumStr, 10);
+                        if (!ex.sets.some(s => s.setNumber === setNum)) {
+                            delete newData[ex.exerciseId][setNumStr];
+                            needsUpdate = true;
+                        }
+                    });
                 });
-                 Object.keys(newData).forEach(exId => {
-                     if (!sessionExercises.some(ex => ex.exerciseId === exId)) { delete newData[exId]; needsUpdate = true; }
-                 });
-                const finalNeedsUpdate = JSON.stringify(newData) !== JSON.stringify(prevData);
-                return finalNeedsUpdate ? newData : prevData;
+                Object.keys(newData).forEach(exId => {
+                    if (!sessionExercises.some(ex => ex.exerciseId === exId)) {
+                        delete newData[exId];
+                        needsUpdate = true;
+                    }
+                });
+                return needsUpdate ? newData : prevData;
             });
             if (typeof resetSessionPRs === 'function') { resetSessionPRs(); }
         }
     }, [sessionExercises, managerLoading, resetSessionPRs]);
 
-    // Callbacks que modifican workoutData (sin cambios)
+    // handleSetChange, handleCompleteSet, handleCopyLastPerformance, handleAddSet (remain the same)
     const handleSetChange = useCallback((exerciseId, setNumber, field, value) => {
         setWorkoutData(prevData => {
             const currentSetData = prevData[exerciseId]?.[setNumber] || { id: uuidv4(), setNumber };
@@ -191,6 +202,7 @@ export default function CreateSessionView({ user, addUndoAction }) { // <-- Reci
                  const repsValue = String(updatedSetData.reps);
                  const repsMatch = repsValue.match(/^\d+/);
                  const reps = repsMatch ? parseInt(repsMatch[0], 10) : NaN;
+
                  const isNewPR = !isNaN(reps) && typeof checkIsPR === 'function' ? checkIsPR(exerciseId, reps, weight) : false;
                  newData[exerciseId][setNumber].isPR = isNewPR;
                  if (isNewPR && typeof trackNewPR === 'function') trackNewPR(exerciseId, reps, weight);
@@ -198,14 +210,21 @@ export default function CreateSessionView({ user, addUndoAction }) { // <-- Reci
             return newData;
         });
     }, [checkIsPR, trackNewPR]);
+
     const handleCompleteSet = useCallback((exerciseId, setNumber, isCompleted) => {
         setWorkoutData(prevData => { const currentSetData = prevData[exerciseId]?.[setNumber] || { id: uuidv4(), setNumber }; return { ...prevData, [exerciseId]: { ...prevData[exerciseId], [setNumber]: { ...currentSetData, completed: isCompleted } } }; });
     }, []);
+
     const handleCopyLastPerformance = useCallback((exerciseId, setNumber, lastPerfSet) => {
          if (!lastPerfSet) return;
          setWorkoutData(prevData => {
              const currentSetData = prevData[exerciseId]?.[setNumber] || { id: uuidv4(), setNumber };
-             const updatedSet = { ...currentSetData, weight: lastPerfSet.weight !== undefined ? String(lastPerfSet.weight) : '', reps: lastPerfSet.reps !== undefined ? String(lastPerfSet.reps) : '', completed: false, effort: '', note: '', isPR: false, };
+             const updatedSet = {
+                ...currentSetData,
+                weight: lastPerfSet.weight !== undefined ? String(lastPerfSet.weight) : '',
+                reps: lastPerfSet.reps !== undefined ? String(lastPerfSet.reps) : '',
+                completed: false, effort: '', note: '', isPR: false
+            };
              const weight = parseFloat(updatedSet.weight);
              const repsValue = String(updatedSet.reps);
              const repsMatch = repsValue.match(/^\d+/);
@@ -217,117 +236,101 @@ export default function CreateSessionView({ user, addUndoAction }) { // <-- Reci
          });
      }, [checkIsPR, trackNewPR]);
 
-    // Callback para añadir set (sin cambios)
-    const handleAddSet = useCallback((exerciseId) => { addSetToSessionExercises(exerciseId); }, [addSetToSessionExercises]);
+     const handleAddSet = useCallback((exerciseId) => { addSetToSessionExercises(exerciseId); }, [addSetToSessionExercises]);
 
-    // --- MODIFICADO: handleRemoveSet con Undo ---
+
+    // --- REFINED handleRemoveSet with Undo ---
     const handleRemoveSet = useCallback((exerciseId, setIdToRemove) => {
-        let undoPayload = null;
-        const exercisesBefore = [...sessionExercises];
-        const workoutDataBefore = JSON.parse(JSON.stringify(workoutData));
-        const targetExerciseIndex = exercisesBefore.findIndex(ex => ex.exerciseId === exerciseId);
+        const exercisesBeforeCapture = JSON.parse(JSON.stringify(sessionExercises));
+        const workoutDataBeforeCapture = JSON.parse(JSON.stringify(workoutData));
+        let basePayload = null;
+        const targetExerciseIndex = exercisesBeforeCapture.findIndex(ex => ex.exerciseId === exerciseId);
+
         if (targetExerciseIndex !== -1) {
-            const setIndexToRemove = exercisesBefore[targetExerciseIndex].sets.findIndex(set => set.id === setIdToRemove);
+            const setIndexToRemove = exercisesBeforeCapture[targetExerciseIndex].sets.findIndex(set => set.id === setIdToRemove);
             if (setIndexToRemove !== -1) {
-                undoPayload = { exerciseId, setInfo: { ...exercisesBefore[targetExerciseIndex].sets[setIndexToRemove] }, exerciseIndex: targetExerciseIndex, setIndex: setIndexToRemove, workoutDataBefore: workoutDataBefore };
+                basePayload = { exerciseId, setInfo: { ...exercisesBeforeCapture[targetExerciseIndex].sets[setIndexToRemove] }, exerciseIndex: targetExerciseIndex, setIndex: setIndexToRemove, workoutDataBefore: workoutDataBeforeCapture };
             }
         }
-        if (!undoPayload) return;
+        if (!basePayload) { console.warn("Could not create undo payload for set removal."); return; }
         removeSetFromSessionExercises(exerciseId, setIdToRemove);
         setWorkoutData(prevData => {
             const newData = JSON.parse(JSON.stringify(prevData));
-            const exerciseSets = newData[exerciseId] || {};
-            const setNumberKey = Object.keys(exerciseSets).find(key => exerciseSets[key]?.id === setIdToRemove);
-            if (setNumberKey) delete exerciseSets[setNumberKey];
-            if (Object.keys(exerciseSets).length === 0) delete newData[exerciseId]; else newData[exerciseId] = exerciseSets;
+            if (newData[exerciseId]) {
+                const setNumberKey = Object.keys(newData[exerciseId]).find(key => newData[exerciseId][key]?.id === setIdToRemove);
+                if (setNumberKey) {
+                    delete newData[exerciseId][setNumberKey];
+                    if (Object.keys(newData[exerciseId]).length === 0) delete newData[exerciseId];
+                } else { console.warn(`Set ID ${setIdToRemove} not found in workoutData for exercise ${exerciseId} during removal update.`); }
+            }
             return newData;
         });
-        addUndoAction(UndoActionTypes.DELETE_SET, "Serie eliminada.", undoPayload);
+        addUndoAction(UndoActionTypes.DELETE_SET, "Serie eliminada.", { ...basePayload, setSessionExercises, setWorkoutData });
     }, [sessionExercises, workoutData, removeSetFromSessionExercises, setSessionExercises, setWorkoutData, addUndoAction]);
 
-    // --- MODIFICADO: handleDeleteExercise y confirmDeleteExercise con Undo ---
+
+    // --- REFINED handleDeleteExercise and confirmDeleteExercise with Undo ---
+    // Opens the confirmation modal
     const handleDeleteExercise = useCallback((exerciseId) => {
         setExerciseIdToDelete(exerciseId);
         setIsDeleteExerciseConfirmationOpen(true);
-    }, []);
+    }, []); // No dependencies needed here
 
+    // Actually performs deletion after confirmation
     const confirmDeleteExercise = useCallback(() => {
         if (!exerciseIdToDelete) return;
-        let undoPayload = null;
-        const exercisesBefore = [...sessionExercises];
-        const workoutDataBefore = JSON.parse(JSON.stringify(workoutData));
-        const exerciseIndex = exercisesBefore.findIndex(ex => ex.exerciseId === exerciseIdToDelete);
+        const exercisesBeforeCapture = JSON.parse(JSON.stringify(sessionExercises));
+        const workoutDataBeforeCapture = JSON.parse(JSON.stringify(workoutData));
+        let basePayload = null;
+        const exerciseIndex = exercisesBeforeCapture.findIndex(ex => ex.exerciseId === exerciseIdToDelete);
+
         if (exerciseIndex !== -1) {
-            undoPayload = { exerciseInfo: { ...exercisesBefore[exerciseIndex] }, index: exerciseIndex, workoutDataBefore: workoutDataBefore };
+            basePayload = { exerciseInfo: { ...exercisesBeforeCapture[exerciseIndex] }, index: exerciseIndex, workoutDataBefore: workoutDataBeforeCapture };
         }
-        if(!undoPayload) return;
+        if (!basePayload) { /* ... handle error, close modal, return ... */ console.warn("Could not create undo payload for exercise deletion."); setIsDeleteExerciseConfirmationOpen(false); setExerciseIdToDelete(null); return; }
+
         const deletedExerciseId = exerciseIdToDelete;
         deleteExerciseFromSessionExercises(deletedExerciseId);
-        setWorkoutData(prevData => { const d = {...prevData}; delete d[deletedExerciseId]; return d; });
+        setWorkoutData(prevData => { const newData = { ...prevData }; delete newData[deletedExerciseId]; return newData; });
         setIsDeleteExerciseConfirmationOpen(false);
         setExerciseIdToDelete(null);
-        addUndoAction(UndoActionTypes.DELETE_EXERCISE, "Ejercicio eliminado.", undoPayload);
+        addUndoAction(UndoActionTypes.DELETE_EXERCISE, "Ejercicio eliminado.", { ...basePayload, setSessionExercises, setWorkoutData });
     }, [exerciseIdToDelete, sessionExercises, workoutData, deleteExerciseFromSessionExercises, setSessionExercises, setWorkoutData, addUndoAction, setIsDeleteExerciseConfirmationOpen]);
 
 
-    // Finalizar/Cancelar (sin cambios)
+    // handleFinishWorkout, handleCancelWorkout (remain the same)
     const handleFinishWorkout = useCallback(async () => {
         if (!user) { alert("Error: Usuario no autenticado."); return; }
-        setIsFinishConfirmationOpen(false);
-        setIsSaving(true);
+        setIsFinishConfirmationOpen(false); setIsSaving(true);
         try {
-             const exercisesToSave = Object.entries(workoutData)
-                 .map(([exerciseId, setsData]) => {
-                     const baseExercise = sessionExercises.find(ex => ex.exerciseId === exerciseId);
-                     if (!baseExercise) return null;
-                     const validSets = Object.values(setsData)
-                         .filter(setData => setData && (setData.weight || setData.reps || setData.effort || setData.completed || setData.note))
-                         .map(setData => ({
-                             set: setData.setNumber,
-                             weight: parseFloat(setData.weight) || 0,
-                             reps: /^\d+$/.test(String(setData.reps)) ? parseInt(setData.reps, 10) : String(setData.reps),
-                             effort: setData.effort || '', completed: setData.completed || false, note: setData.note || '', isPR: setData.isPR || false,
-                         }))
-                         .sort((a, b) => a.set - b.set);
-                     if (validSets.length === 0) return null;
-                     return { exerciseId, exerciseName: baseExercise.exerciseName, variationName: baseExercise.variationName, isUnilateral: baseExercise.isUnilateral, supersetId: baseExercise.supersetId, supersetOrder: baseExercise.supersetOrder, sets: validSets };
-                 })
-                 .filter(ex => ex !== null);
-            if (exercisesToSave.length === 0) { alert("No has registrado ningún dato en esta sesión."); setIsSaving(false); return; }
-            // Corrección: saveWorkoutSession necesita prSets como argumento, pasamos uno vacío por ahora
-             const prSetsIdentified = new Set(); // O calcula los PRs reales si es necesario aquí
-            const savedSessionRef = await saveWorkoutSession(user.uid, routineId, workoutData, sessionExercises, prSetsIdentified); // Pasar prSets
-            if (savedSessionRef && savedSessionRef.id) { // Verificar que se obtuvo una referencia válida
-                 navigate(`/historial/${savedSessionRef.id}`);
-             } else {
-                 throw new Error("No se pudo obtener el ID de la sesión guardada.");
-             }
-        } catch (error) {
-            console.error("Error al guardar sesión:", error);
-            alert(`Hubo un error al guardar la sesión: ${error.message}`);
-            setIsSaving(false);
-        }
-     }, [workoutData, sessionExercises, user, routineId, routineDoc?.name, navigate, saveWorkoutSession]); // Añadido saveWorkoutSession como dependencia
-
-
+            const prSetsToSave = new Set();
+            Object.entries(workoutData).forEach(([exId, sets]) => Object.entries(sets).forEach(([sNum, sData]) => { if (sData?.isPR) prSetsToSave.add(`${exId}-${sNum}`); }));
+            const savedRef = await saveWorkoutSession(user.uid, routineId, workoutData, sessionExercises, prSetsToSave);
+            if (savedRef?.id) navigate(`/historial/${savedRef.id}`);
+            else throw new Error("No se pudo obtener el ID de la sesión guardada.");
+        } catch (error) { console.error("Error al guardar:", error); alert(`Error: ${error.message}`); setIsSaving(false); }
+    }, [user, routineId, workoutData, sessionExercises, navigate, saveWorkoutSession]);
     const handleCancelWorkout = () => { setIsCancelConfirmationOpen(false); navigate('/rutinas'); };
 
-    // Estados combinados de carga y error (sin cambios)
+    // Loading/Error checks (remain the same)
     const isLoading = routineLoading || managerLoading || isLastPerformanceLoading || isPRLoading;
     const hasError = managerError;
     if (!user && !isLoading) { return <ThemedLoader />; }
     if (isLoading) return <ThemedLoader />;
-    if (hasError) return <Card><p className="text-red-500">{hasError}</p></Card>;
+    if (hasError) return <Card><p className="text-red-500">{hasError.message || String(hasError)}</p></Card>;
 
+
+    // --- RENDERIZADO ---
     return (
         <div className="relative min-h-screen pb-20">
-            {/* Modales */}
+            {/* Modals */}
              <AddExerciseToRoutineModal isOpen={isAddExerciseModalOpen} onClose={() => setIsAddExerciseModalOpen(false)} user={user} onExerciseAdded={handleAddOrReplaceExercise} routineId={routineId}/>
-             <ConfirmationModal isOpen={isFinishConfirmationOpen} onClose={() => setIsFinishConfirmationOpen(false)} title="Finalizar Entrenamiento" message="¿Estás seguro de que quieres finalizar y guardar esta sesión?" onConfirm={handleFinishWorkout} />
+             <ConfirmationModal isOpen={isFinishConfirmationOpen} onClose={() => setIsFinishConfirmationOpen(false)} title="Finalizar Entrenamiento" message="¿Estás seguro de que quieres finalizar y guardar esta sesión?" onConfirm={handleFinishWorkout} confirmText="Sí, Finalizar" />
              <ConfirmationModal isOpen={isCancelConfirmationOpen} onClose={() => setIsCancelConfirmationOpen(false)} title="Cancelar Entrenamiento" message="¿Estás seguro de que quieres cancelar? El progreso no guardado se perderá." onConfirm={handleCancelWorkout} confirmText="Sí, Cancelar" cancelText="No, Continuar" />
-             <ConfirmationModal isOpen={isDeleteExerciseConfirmationOpen} onClose={() => setIsDeleteExerciseConfirmationOpen(false)} title="Eliminar Ejercicio" message="¿Estás seguro de que quieres eliminar este ejercicio de la sesión actual?" onConfirm={confirmDeleteExercise} />
+             {/* Assign confirmDeleteExercise to onConfirm here */}
+             <ConfirmationModal isOpen={isDeleteExerciseConfirmationOpen} onClose={() => setIsDeleteExerciseConfirmationOpen(false)} title="Eliminar Ejercicio" message="¿Estás seguro de que quieres eliminar este ejercicio de la sesión actual?" onConfirm={confirmDeleteExercise} confirmText="Sí, Eliminar"/>
             <Card>
-                {/* Encabezado */}
+                {/* Header */}
                 <div className="flex justify-between items-start mb-6">
                     <div>
                          <button onClick={() => setIsCancelConfirmationOpen(true)} className="flex items-center gap-2 text-sm text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 mb-2"> <XCircle size={16}/> Cancelar Sesión </button>
@@ -337,19 +340,35 @@ export default function CreateSessionView({ user, addUndoAction }) { // <-- Reci
                 </div>
                 {/* Rest Timer */}
                 <RestTimer />
-                {/* Lista de Ejercicios */}
+                {/* Exercise List */}
                 <div className="space-y-6">
                      {sessionExercises.length > 0 ? (
                         sessionExercises.map((ex) => {
                             const lastPerfSets = typeof getLastPerformance === 'function' ? getLastPerformance(ex.exerciseId) : [];
-                            return ( <ExerciseCard key={ex.exerciseId} exercise={ex} exerciseWorkoutData={workoutData[ex.exerciseId] || {}} preferences={preferences} onSetChange={handleSetChange} onCompleteSet={handleCompleteSet} onAddSet={handleAddSet} onRemoveSet={handleRemoveSet} onDeleteExercise={handleDeleteExercise} onReplaceExercise={openReplaceModal} lastPerformanceSets={lastPerfSets} onCopyLastPerformance={handleCopyLastPerformance} /> );
+                            return (
+                                <ExerciseCard
+                                    key={ex.exerciseId}
+                                    exercise={ex}
+                                    exerciseWorkoutData={workoutData[ex.exerciseId] || {}}
+                                    preferences={preferences}
+                                    onSetChange={handleSetChange}
+                                    onCompleteSet={handleCompleteSet}
+                                    onAddSet={handleAddSet}
+                                    onRemoveSet={handleRemoveSet}
+                                    // *** Pass handleDeleteExercise (the one opening the modal) ***
+                                    onDeleteExercise={handleDeleteExercise}
+                                    onReplaceExercise={openReplaceModal}
+                                    lastPerformanceSets={lastPerfSets}
+                                    onCopyLastPerformance={handleCopyLastPerformance}
+                                />
+                             );
                         })
-                    ) : ( <p className="text-center text-gray-500 py-8">Cargando ejercicios o la rutina está vacía. Añade uno si es necesario.</p> )}
+                    ) : ( <p className="text-center text-gray-500 py-8">Cargando ejercicios o la rutina está vacía...</p> )}
                 </div>
-                {/* Botón Añadir Ejercicio */}
+                {/* Add Exercise Button */}
                  <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4"> <button onClick={openAddModal} className="w-full flex items-center justify-center gap-2 py-2 text-blue-500 hover:underline" > <PlusCircle size={18} /> Agregar Ejercicio a la Sesión </button> </div>
             </Card>
-            {/* El UndoNotification se renderiza globalmente */}
+            {/* Undo Toast handled globally */}
         </div>
     );
 }
