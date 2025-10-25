@@ -54,11 +54,58 @@ const actionRestorers = {
              toast.error('Error al deshacer: Inconsistencia de datos.');
             return prevExercises; // Devuelve sin cambios si algo no cuadra
         });
-        if (workoutDataBefore) {
-             setWorkoutData(workoutDataBefore);
+        // 2. --- ¡MEJORA AQUÍ! ---
+        // Restaurar SOLO la parte relevante de workoutData
+        if (workoutDataBefore && workoutDataBefore[exerciseId]) {
+            // Obtiene solo el bloque de datos del ejercicio ANTES de la eliminación
+            const exerciseDataBefore = workoutDataBefore[exerciseId];
+
+            // Actualiza el estado de workoutData,
+            // manteniendo todos los demás ejercicios intactos
+            setWorkoutData(prevWorkoutData => ({
+                ...prevWorkoutData, // Mantiene los datos de otros ejercicios como están ahora
+                [exerciseId]: exerciseDataBefore // Restaura solo el bloque de este ejercicio
+            }));
         } else {
-             console.warn("Undo Warning: No se encontró workoutDataBefore para restaurar DELETE_SET.");
-             // Considera si necesitas mostrar un error al usuario aquí también
+             // Si por alguna razón no tenemos el bloque,
+             // intentamos al menos reinsertar el set individualmente (Fallback)
+             console.warn("Undo DELETE_SET: workoutDataBefore[exerciseId] no encontrado. Realizando restauración granular alternativa.");
+             setWorkoutData(prevWorkoutData => {
+                const currentExerciseData = prevWorkoutData[exerciseId] || {};
+                // Reconstruye los datos del set que estamos restaurando
+                const restoredSetData = {
+                    id: setInfo.id,
+                    setNumber: setInfo.setNumber, // Usa el número de set original guardado
+                    weight: setInfo.weight || '',
+                    reps: setInfo.reps || '',
+                    effort: setInfo.effort || '',
+                    completed: setInfo.completed || false,
+                    note: setInfo.note || '',
+                    isPR: setInfo.isPR || false,
+                    ...(setInfo.completedLeft !== undefined && { completedLeft: setInfo.completedLeft }),
+                    ...(setInfo.completedRight !== undefined && { completedRight: setInfo.completedRight }),
+                };
+
+                // Combina los datos actuales del ejercicio con el set restaurado
+                 const updatedExerciseData = {
+                    ...currentExerciseData,
+                    [setInfo.setNumber]: restoredSetData // Añade/sobrescribe usando el número de set
+                 };
+
+                 // Opcional pero recomendado: Reordena las claves numéricas (setNumber)
+                 const orderedExerciseData = Object.keys(updatedExerciseData)
+                    .sort((a, b) => parseInt(a, 10) - parseInt(b, 10))
+                    .reduce((obj, key) => {
+                        obj[key] = updatedExerciseData[key];
+                        return obj;
+                    }, {});
+
+                // Devuelve el estado completo de workoutData actualizando solo este ejercicio
+                return {
+                    ...prevWorkoutData,
+                    [exerciseId]: orderedExerciseData
+                };
+             });
         }
     },
     [UndoActionTypes.DELETE_EXERCISE]: (payload) => {
